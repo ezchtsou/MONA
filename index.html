@@ -4,74 +4,128 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>新進員工訓練回饋系統 | MONA Onboarding Feedback</title>
-  <script>
-    // ✅ 將 GAS EXEC URL 寫死於此（使用者可於金鑰頁面更改）
-    const GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec';
-
-    async function submitToGAS(payload){
-      try {
-        const res = await fetch(GAS_EXEC_URL + '?origin=' + encodeURIComponent(location.origin), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.ok) {
-          alert('✅ 已成功寫入試算表！');
-        } else {
-          alert('⚠️ 錯誤：' + data.error);
-        }
-      } catch (err) {
-        alert('🚫 連線失敗：' + err.message);
-      }
-    }
-
-    function handleSubmit(){
-      const employeeId = document.getElementById('employeeId').value.trim();
-      const fullName = document.getElementById('fullName').value.trim();
-      const dept = document.getElementById('dept').value.trim();
-      const date = document.getElementById('date').value;
-      const feedback = document.getElementById('feedback').value.trim();
-
-      if(!employeeId || !fullName || !dept || !feedback){
-        alert('請完整填寫所有欄位');
-        return;
-      }
-
-      const payload = {
-        module: 'messages',
-        employeeId,
-        fullName,
-        dept,
-        date: date || new Date().toISOString().slice(0,10),
-        body: feedback,
-        ts: Date.now()
-      };
-      submitToGAS(payload);
-    }
-  </script>
+  <style>
+    :root{--bg:#f8fafc;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--brand:#0ea5e9;--active:#dbeafe;--danger:#fecaca}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans CJK TC",sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{margin:0;font-size:20px;letter-spacing:.5px}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{border:1px solid #e5e7eb;background:#fff;color:var(--text);padding:8px 12px;border-radius:12px;cursor:pointer}
+    .tab.active{border-color:var(--brand);box-shadow:0 0 0 1px inset var(--brand)}
+    main{padding:24px}
+    section.card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin:18px 0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){.row{grid-template-columns:1fr}}
+    label{display:block;font-weight:600;margin:10px 0 6px}
+    input[type=text],input[type=date],input[type=email],select,textarea{width:100%;background:#fff;color:var(--text);border:1px solid #e5e7eb;border-radius:10px;padding:10px}
+    textarea{min-height:88px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    button{border:1px solid #e5e7eb;background:#fff;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}
+    button.primary{border-color:var(--brand);box-shadow:0 0 0 1px inset var(--brand)}
+    .muted{color:var(--muted);font-size:12px}
+    .toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
+  </style>
 </head>
-<body style="font-family:system-ui, sans-serif; background:#f8fafc; color:#1f2937;">
-  <main style="max-width:600px;margin:60px auto;background:white;padding:24px;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
-    <h1 style="font-size:22px;margin-bottom:12px">MONA｜新進員工訓練回饋</h1>
-    <p style="color:#6b7280;margin-bottom:20px">請填寫以下資訊，資料將自動傳入 Google 試算表</p>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>MONA Onboarding Feedback｜新進員工訓練回饋系統</h1>
+    </div>
+  </header>
+  <main class="wrap">
+    <section id="tab-0" class="card">
+      <h2>🔑 基本資訊</h2>
+      <div class="row">
+        <div>
+          <label>使用者代號（employeeId）</label>
+          <input id="employeeId" type="text" placeholder="例如：VHC-2025-001" />
+        </div>
+        <div>
+          <label>姓名</label>
+          <input id="fullName" type="text" placeholder="例如：王小明" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>單位 / 部門</label>
+          <input id="dept" type="text" placeholder="例如：車輛課／軌土課／通號課" />
+        </div>
+        <div>
+          <label>今天日期</label>
+          <input id="date" type="date" />
+        </div>
+      </div>
+    </section>
 
-    <label>使用者代號</label>
-    <input id="employeeId" type="text" placeholder="例如：VHC-2025-001" style="width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc" />
+    <section id="tab-1" class="card">
+      <h2>🩵 初期訓練問卷</h2>
+      <p>請針對以下五項指標進行評分（1分＝非常不同意，5分＝非常同意）：</p>
+      <table>
+        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+        <tr><td>1. 我清楚了解單位的運作方式與人員分工。</td><td><input type="radio" name="loc1" value="1"></td><td><input type="radio" name="loc1" value="2"></td><td><input type="radio" name="loc1" value="3"></td><td><input type="radio" name="loc1" value="4"></td><td><input type="radio" name="loc1" value="5"></td></tr>
+        <tr><td>2. 我能掌握自身工作內容的重點與流程。</td><td><input type="radio" name="loc2" value="1"></td><td><input type="radio" name="loc2" value="2"></td><td><input type="radio" name="loc2" value="3"></td><td><input type="radio" name="loc2" value="4"></td><td><input type="radio" name="loc2" value="5"></td></tr>
+        <tr><td>3. 我對目前的工作環境感到適應良好。</td><td><input type="radio" name="loc3" value="1"></td><td><input type="radio" name="loc3" value="2"></td><td><input type="radio" name="loc3" value="3"></td><td><input type="radio" name="loc3" value="4"></td><td><input type="radio" name="loc3" value="5"></td></tr>
+        <tr><td>4. 我與同事之間的互動合作順利。</td><td><input type="radio" name="loc4" value="1"></td><td><input type="radio" name="loc4" value="2"></td><td><input type="radio" name="loc4" value="3"></td><td><input type="radio" name="loc4" value="4"></td><td><input type="radio" name="loc4" value="5"></td></tr>
+        <tr><td>5. 我認為初期訓練的內容能幫助我順利進入工作狀態。</td><td><input type="radio" name="loc5" value="1"></td><td><input type="radio" name="loc5" value="2"></td><td><input type="radio" name="loc5" value="3"></td><td><input type="radio" name="loc5" value="4"></td><td><input type="radio" name="loc5" value="5"></td></tr>
+      </table>
+      <label>開放意見</label>
+      <textarea id="locate-open" placeholder="請提供其他意見或建議"></textarea>
+    </section>
 
-    <label>姓名</label>
-    <input id="fullName" type="text" placeholder="例如：王小明" style="width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc" />
+    <section id="tab-2" class="card">
+      <h2>💡 中期技能課程回饋</h2>
+      <p>請評估以下學習成效（1分＝非常不同意，5分＝非常同意）：</p>
+      <table>
+        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+        <tr><td>1. 技能課程的內容能應用於實際工作。</td><td><input type="radio" name="sk1" value="1"></td><td><input type="radio" name="sk1" value="2"></td><td><input type="radio" name="sk1" value="3"></td><td><input type="radio" name="sk1" value="4"></td><td><input type="radio" name="sk1" value="5"></td></tr>
+        <tr><td>2. 教學方式能有效幫助我理解內容。</td><td><input type="radio" name="sk2" value="1"></td><td><input type="radio" name="sk2" value="2"></td><td><input type="radio" name="sk2" value="3"></td><td><input type="radio" name="sk2" value="4"></td><td><input type="radio" name="sk2" value="5"></td></tr>
+        <tr><td>3. 我能熟練操作課程中學到的技能。</td><td><input type="radio" name="sk3" value="1"></td><td><input type="radio" name="sk3" value="2"></td><td><input type="radio" name="sk3" value="3"></td><td><input type="radio" name="sk3" value="4"></td><td><input type="radio" name="sk3" value="5"></td></tr>
+        <tr><td>4. 課程時間與進度安排合理。</td><td><input type="radio" name="sk4" value="1"></td><td><input type="radio" name="sk4" value="2"></td><td><input type="radio" name="sk4" value="3"></td><td><input type="radio" name="sk4" value="4"></td><td><input type="radio" name="sk4" value="5"></td></tr>
+        <tr><td>5. 我願意推薦此課程給其他同仁。</td><td><input type="radio" name="sk5" value="1"></td><td><input type="radio" name="sk5" value="2"></td><td><input type="radio" name="sk5" value="3"></td><td><input type="radio" name="sk5" value="4"></td><td><input type="radio" name="sk5" value="5"></td></tr>
+      </table>
+      <label>開放意見</label>
+      <textarea id="skill-open" placeholder="請提供其他意見或建議"></textarea>
+    </section>
 
-    <label>單位／部門</label>
-    <input id="dept" type="text" placeholder="例如：車輛課／通號課" style="width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc" />
+    <section id="tab-3" class="card">
+      <h2>🔶 後期360度評估</h2>
+      <p>請針對受評者進行綜合評估（1分＝非常不同意，5分＝非常同意）：</p>
+      <table>
+        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+        <tr><td>1. 能與同事保持良好溝通與協作。</td><td><input type="radio" name="gr1" value="1"></td><td><input type="radio" name="gr1" value="2"></td><td><input type="radio" name="gr1" value="3"></td><td><input type="radio" name="gr1" value="4"></td><td><input type="radio" name="gr1" value="5"></td></tr>
+        <tr><td>2. 工作態度積極且具責任感。</td><td><input type="radio" name="gr2" value="1"></td><td><input type="radio" name="gr2" value="2"></td><td><input type="radio" name="gr2" value="3"></td><td><input type="radio" name="gr2" value="4"></td><td><input type="radio" name="gr2" value="5"></td></tr>
+        <tr><td>3. 能主動提出改善建議或解決問題。</td><td><input type="radio" name="gr3" value="1"></td><td><input type="radio" name="gr3" value="2"></td><td><input type="radio" name="gr3" value="3"></td><td><input type="radio" name="gr3" value="4"></td><td><input type="radio" name="gr3" value="5"></td></tr>
+        <tr><td>4. 在壓力下仍能維持穩定表現。</td><td><input type="radio" name="gr4" value="1"></td><td><input type="radio" name="gr4" value="2"></td><td><input type="radio" name="gr4" value="3"></td><td><input type="radio" name="gr4" value="4"></td><td><input type="radio" name="gr4" value="5"></td></tr>
+        <tr><td>5. 整體表現符合單位期望。</td><td><input type="radio" name="gr5" value="1"></td><td><input type="radio" name="gr5" value="2"></td><td><input type="radio" name="gr5" value="3"></td><td><input type="radio" name="gr5" value="4"></td><td><input type="radio" name="gr5" value="5"></td></tr>
+      </table>
+    </section>
 
-    <label>日期</label>
-    <input id="date" type="date" style="width:100%;padding:8px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc" />
+    <section id="tab-4" class="card">
+      <h2>💬 意見反映</h2>
+      <textarea id="msgBody" placeholder="遇到的困難或建議"></textarea>
+    </section>
 
-    <label>回饋內容</label>
-    <textarea id="feedback" placeholder="請輸入您的回饋或建議..." style="width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;min-height:100px"></textarea>
-
-    <button onclick="handleSubmit()" style="margin-top:16px;width:100%;padding:10px 0;border:none;border-radius:12px;background:#0ea5e9;color:white;font-size:16px;cursor:pointer">送出</button>
+    <section id="tab-5" class="card">
+      <h2>🛠️ 管理設定（Admin）</h2>
+      <label>GAS Web App URL（/exec）</label>
+      <input id="gas_url" type="text" value="https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec" readonly />
+    </section>
   </main>
+  <script>
+    const ADMIN_KEY = 'MONAADMIN';
+    const STORAGE_KEY = 'mona_onboarding_cfg_v4';
+    const CONFIG_DEFAULTS = { gf: {} };
+    let profile = {
+      employeeId:'', fullName:'', dept:'', date:'',
+      api:{ gasUrl:'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec' }
+    };
+    function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2200);}
+    toast('問卷已恢復完整，可直接使用');
+  </script>
 </body>
 </html>
+
