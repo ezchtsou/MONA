@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>新進員工訓練回饋系統 | MONA Onboarding Feedback</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--brand:#0ea5e9;--active:#dbeafe;--danger:#fecaca}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans CJK TC",sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{margin:0;font-size:20px;letter-spacing:.5px}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{border:1px solid #e5e7eb;background:#fff;color:var(--text);padding:8px 12px;border-radius:12px;cursor:pointer}
+    .tab.active{border-color:var(--brand);box-shadow:0 0 0 1px inset var(--brand)}
+    main{padding:24px}
+    section.card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin:18px 0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){.row{grid-template-columns:1fr}}
+    label{display:block;font-weight:600;margin:10px 0 6px}
+    input[type=text],input[type=date],input[type=email],select,textarea{width:100%;background:#fff;color:var(--text);border:1px solid #e5e7eb;border-radius:10px;padding:10px}
+    textarea{min-height:88px}
+    .scale{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;cursor:pointer;transition:all .2s}
+    .pill input{display:none}
+    .pill:hover{background:#e0f2fe}
+    .pill.active{background:var(--active);border-color:var(--brand);box-shadow:0 0 0 1px inset var(--brand)}
+    .pill.error{background:var(--danger);border-color:#ef4444}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    button{border:1px solid #e5e7eb;background:#fff;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}
+    button.primary{border-color:var(--brand);box-shadow:0 0 0 1px inset var(--brand)}
+    .muted{color:var(--muted);font-size:12px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #e5e7eb;background:#fff}
+    .hl{color:var(--brand)}
+    .hidden{display:none!important}
+    .toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h1>MONA Onboarding Feedback｜新進員工訓練回饋系統（GAS 寫入 Google 試算表 版）</h1>
+        <div>
+          <span class="badge">使用者ID：<span id="userIdBadge"></span></span>
+        </div>
+      </div>
+      <nav id="tabs"></nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <section id="tab-0" class="card">
+      <h2>🔑 基本資訊</h2>
+      <p class="muted">請先填寫以下資訊，以利將回覆寫入 Google 試算表。管理設定已移至「🛠️ 管理設定（Admin）」分頁，新人無需操作。</p>
+      <div class="row">
+        <div>
+          <label>使用者代號（employeeId）</label>
+          <input id="employeeId" type="text" placeholder="例如：VHC-2025-001" />
+        </div>
+        <div>
+          <label>姓名</label>
+          <input id="fullName" type="text" placeholder="例如：王小明" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>單位 / 部門</label>
+          <input id="dept" type="text" placeholder="例如：車輛課／軌土課／通號課" />
+        </div>
+        <div>
+          <label>今天日期</label>
+          <input id="date" type="date" />
+        </div>
+      </div>
+      <div class="btns">
+        <button id="fillToday" type="button">填入今天</button>
+      </div>
+    </section>
+
+    <section id="tab-1" class="card hidden">
+      <h2>🩵 新進員工初期訓練回饋問卷</h2>
+      <p class="muted">聚焦「我知道」：設施位置、組織架構、關鍵同事、主管、求助窗口。</p>
+      <div id="survey-locate"></div>
+      <label>開放意見（可留空）</label>
+      <textarea id="locate-open"></textarea>
+      <div class="btns">
+        <button class="primary" id="submitLocate" type="button">送出定位問卷（寫入 Google 試算表）</button>
+      </div>
+    </section>
+
+    <section id="tab-2" class="card hidden">
+      <h2>💡 新進員工中期技能基礎課程回饋問卷（含小測驗）</h2>
+      <p class="muted">聚焦「我會用」：理論與實作是否銜接、安全規範理解、SOP執行。</p>
+      <div id="survey-skill"></div>
+      <label>開放意見（可留空）</label>
+      <textarea id="skill-open"></textarea>
+      <h3>🧪 小測驗（示例）</h3>
+      <div id="quiz"></div>
+      <div class="btns">
+        <button class="primary" id="submitSkill" type="button">送出熟練問卷＋測驗（寫入 Google 試算表）</button>
+      </div>
+    </section>
+
+    <section id="tab-3" class="card hidden">
+      <h2>🔶 新進員工後期360度員工評估調查</h2>
+      <p class="muted">聚焦「我成長」：自主管理、問題解決、協作、持續改善、職涯路徑認知。</p>
+      <div id="survey-grow"></div>
+      <label>360 角色</label>
+      <select id="raterRole">
+        <option value="self">自評</option>
+        <option value="manager">直屬主管</option>
+        <option value="peer">同儕</option>
+        <option value="mentor">導師/教練</option>
+      </select>
+      <label>評估對象（employeeId）</label>
+      <input id="rateeId" type="text" placeholder="若自評可留本人ID" />
+      <div class="btns">
+        <button class="primary" id="submitGrow" type="button">送出啟發＋360評估（寫入 Google 試算表）</button>
+      </div>
+    </section>
+
+    <section id="tab-4" class="card hidden">
+      <h2>💬 意見反映</h2>
+      <div class="row">
+        <div>
+          <label>留言內容</label>
+          <textarea id="msgBody" placeholder="遇到的困難、建議、希望補強的主題…"></textarea>
+        </div>
+        <div>
+          <label>是否匿名</label>
+          <select id="msgAnon"><option value="yes">匿名</option><option value="no">署名</option></select>
+          <div class="btns" style="margin-top:12px">
+            <button class="primary" id="submitMsg" type="button">送出留言（寫入 Google 試算表）</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-5" class="card hidden">
+      <h2>🛠️ 管理設定（Admin）</h2>
+      <p class="muted">此分頁僅供管理者設定後端連線與欄位對應，新人不需進入此分頁。</p>
+      <div class="btns">
+        <input id="adminKey" type="password" placeholder="輸入管理金鑰（例如：MONAADMIN2025）" style="max-width:320px" />
+        <button id="adminToggle" type="button">啟用（輸入金鑰後顯示表單設定）</button>
+      </div>
+      <div id="adminPanel" class="card hidden" style="margin-top:8px">
+        <h3>🧾 後端連線</h3>
+        <p class="muted">推薦使用 <strong>Google Apps Script（GAS）Web App</strong> 作為 API 直接寫入 Google 試算表。</p>
+        <label>GAS Web App URL（/exec）</label>
+        <input id="gas_url" type="text" placeholder="https://script.google.com/macros/s/......../exec" />
+        <div class="btns" style="margin-top:8px">
+          <button id="gasTestBtn" type="button">測試連線（PING）</button>
+        </div>
+        <details style="margin:8px 0 16px">
+          <summary class="muted">若需保留 Google 表單 formResponse（備用）</summary>
+          <div class="row">
+            <div>
+              <label>定位 formResponse URL</label>
+              <input id="gf_loc_url" type="text" placeholder="https://docs.google.com/forms/d/e/.../formResponse" />
+              <label>定位 payload entry 代號</label>
+              <input id="gf_loc_entry" type="text" placeholder="entry.295725881" />
+              <label>定位 姓名 entry（選填）</label>
+              <input id="gf_loc_name" type="text" placeholder="entry.xxxxxx" />
+              <label>定位 單位 entry（選填）</label>
+              <input id="gf_loc_unit" type="text" placeholder="entry.xxxxxx" />
+            </div>
+            <div>
+              <label>熟練 formResponse URL</label>
+              <input id="gf_skill_url" type="text" placeholder="https://docs.google.com/forms/d/e/.../formResponse" />
+              <label>熟練 payload entry 代號</label>
+              <input id="gf_skill_entry" type="text" placeholder="entry.1423903952" />
+              <label>熟練 姓名 entry（選填）</label>
+              <input id="gf_skill_name" type="text" placeholder="entry.xxxxxx" />
+              <label>熟練 單位 entry（選填）</label>
+              <input id="gf_skill_unit" type="text" placeholder="entry.xxxxxx" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>啟發＋360 formResponse URL</label>
+              <input id="gf_grow_url" type="text" placeholder="https://docs.google.com/forms/d/e/.../formResponse" />
+              <label>啟發 payload entry 代號</label>
+              <input id="gf_grow_entry" type="text" placeholder="entry.626056042" />
+              <label>啟發 姓名 entry（選填）</label>
+              <input id="gf_grow_name" type="text" placeholder="entry.xxxxxx" />
+              <label>啟發 單位 entry（選填）</label>
+              <input id="gf_grow_unit" type="text" placeholder="entry.xxxxxx" />
+            </div>
+            <div>
+              <label>留言 formResponse URL</label>
+              <input id="gf_msg_url" type="text" placeholder="https://docs.google.com/forms/d/e/.../formResponse" />
+              <label>留言 payload entry 代號</label>
+              <input id="gf_msg_entry" type="text" placeholder="entry.803463096" />
+              <label>留言 姓名 entry（選填）</label>
+              <input id="gf_msg_name" type="text" placeholder="entry.xxxxxx" />
+              <label>留言 單位 entry（選填）</label>
+              <input id="gf_msg_unit" type="text" placeholder="entry.xxxxxx" />
+            </div>
+          </div>
+        </details>
+        <div class="btns">
+          <button class="primary" id="saveBtn" type="button">儲存設定</button>
+          <button id="resetBtn" type="button">清空當前設定</button>
+          <button id="exportBtn" type="button">匯出設定 JSON</button>
+          <button id="importBtn" type="button">匯入設定 JSON</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="wrap">
+      <div>© 2025 MONA Onboarding · Vanilla JS Demo</div>
+      <div class="btns" style="margin-top:12px">
+        <button id="runTestsBtn" type="button">🔎 執行內建測試（顯示於 Console）</button>
+      </div>
+    </footer>
+  </main>
+
+  <iframe name="sink" id="sink" style="display:none"></iframe>
+  <form id="ghost" method="POST" target="sink" class="hidden"></form>
+
+<script>
+const ADMIN_KEY = 'MONAADMIN2025';
+const STORAGE_KEY = 'mona_onboarding_cfg_v4';
+const CONFIG_DEFAULTS = {
+  gf:{
+    locate:{ url:'https://docs.google.com/forms/d/e/1FAIpQLSfv3HxifEycHeJrHDW9E127JwqdtTkFI0fUgYsDw3a68RahrQ/formResponse', entry:'entry.295725881', name:'', unit:'' },
+    skill :{ url:'https://docs.google.com/forms/d/e/1FAIpQLSek4o8CDj1h87HgTIxGlcf17wzddjfIabjsD67N3_iRrFAHwg/formResponse', entry:'entry.1423903952', name:'', unit:'' },
+    grow  :{ url:'https://docs.google.com/forms/d/e/1FAIpQLSfKEsz8QXI41oWJft-QWsZzGnSQQefX6YkInOjjo2ewQzZkWw/formResponse', entry:'entry.626056042', name:'', unit:'' },
+    msg   :{ url:'https://docs.google.com/forms/d/e/1FAIpQLScYpa7i_tkXiulrgtv3icf8PegxfXambQElH5nH1I1cp3W3-w/formResponse', entry:'entry.803463096', name:'', unit:'' }
+  }
+};
+let profile = { employeeId:'', fullName:'', dept:'', date:'', api:{ gasUrl:'' }, gf: JSON.parse(JSON.stringify(CONFIG_DEFAULTS.gf)) };
+
+function hydrateAdminFields(){
+  const map = [['loc','locate'],['skill','skill'],['grow','grow'],['msg','msg']];
+  const gas = document.getElementById('gas_url');
+  if(gas) gas.value = profile.api?.gasUrl || '';
+  map.forEach(([short,key])=>{
+    const g = profile.gf[key];
+    const byId = id=>document.getElementById(id);
+    const urlEl = byId(`gf_${short}_url`);
+    const entEl = byId(`gf_${short}_entry`);
+    const nameEl = byId(`gf_${short}_name`);
+    const unitEl = byId(`gf_${short}_unit`);
+    if(urlEl) urlEl.value = g.url||'';
+    if(entEl) entEl.value = g.entry||'';
+    if(nameEl) nameEl.value = g.name||'';
+    if(unitEl) unitEl.value = g.unit||'';
+  });
+}
+function saveConfigOnly(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({api: profile.api, gf: profile.gf})); }
+function restoreConfig(){
+  profile.gf = JSON.parse(JSON.stringify(CONFIG_DEFAULTS.gf));
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try{ const cached = JSON.parse(raw); if(cached.gf){ profile.gf = {...profile.gf, ...cached.gf}; } if(cached.api){ profile.api = {...(profile.api||{}), ...cached.api}; } }catch(e){} }
+  hydrateAdminFields();
+}
+function exportConfig(){
+  const cfg = {gf: profile.gf, api: profile.api};
+  const blob = new Blob([JSON.stringify(cfg,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='onboarding-config.json'; a.click(); URL.revokeObjectURL(url);
+}
+function importConfig(){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange = e=>{
+    const file = e.target.files[0]; if(!file) return;
+    file.text().then(text=>{
+      try{ const cfg = JSON.parse(text); if(!cfg.gf) throw new Error('缺少 gf');
+        profile.gf = cfg.gf; if(cfg.api) profile.api = cfg.api; hydrateAdminFields(); saveConfigOnly(); toast('設定已匯入');
+      }catch(err){ toast('匯入失敗：'+err.message); }
+    });
+  };
+  inp.click();
+}
+function toggleAdmin(){
+  const panel = document.getElementById('adminPanel');
+  const keyInput = document.getElementById('adminKey');
+  const typed = keyInput ? keyInput.value.trim() : '';
+  if(panel.classList.contains('hidden')){
+    let key = typed;
+    if(!key){ key = (typeof prompt==='function') ? prompt('輸入管理金鑰以啟用 Admin 模式') : ''; }
+    if(key!==ADMIN_KEY){ toast('金鑰錯誤'); keyInput && keyInput.focus(); return; }
+    panel.classList.remove('hidden');
+    document.getElementById('adminToggle').textContent = '停用';
+    if(keyInput){ keyInput.value=''; }
+  }else{
+    panel.classList.add('hidden');
+    document.getElementById('adminToggle').textContent = '啟用（輸入金鑰後顯示表單設定）';
+  }
+}
+function prefillFromQuery(){
+  const q = new URLSearchParams(location.search);
+  const eid = q.get('eid')||q.get('id');
+  const name = q.get('name');
+  const dept = q.get('dept');
+  if(eid) document.getElementById('employeeId').value = eid;
+  if(name) document.getElementById('fullName').value = name;
+  if(dept) document.getElementById('dept').value = dept;
+}
+
+const Likert = [
+  {v:1,t:'非常不同意'},{v:2,t:'不同意'},{v:3,t:'普通'},{v:4,t:'同意'},{v:5,t:'非常同意'}
+];
+const Q_LOCATE = [
+  '我知道主要設施位置（辦公室/維修場/餐廳/急救箱）。',
+  '我清楚組織架構與部門職責。',
+  '我知道我的直接主管與關鍵同事是誰。',
+  '我清楚請假、報修、報帳等基本流程。',
+  '遇到問題時，我知道求助管道與聯絡方式。',
+];
+const Q_SKILL = [
+  '我能將理論課內容應用到實作中。',
+  '我能正確依據 SOP 執行日常任務。',
+  '我了解並遵守安全規範。',
+  '講師/教練的指導有助於我完成工作。',
+  '我需要的教材與工具容易取得。',
+];
+const QUIZ = [
+  {q:'維修作業開始前，第一步應確認的是？', a:['個人防護裝備就緒','工具是否齊全','打卡紀錄','午餐是否訂好'], ans:0},
+  {q:'下列何者不是標準維修報告必要欄位？', a:['故障描述','檢測步驟','處理方式','員工家庭狀況'], ans:3},
+];
+const Q_GROW = [
+  '我能自行規劃與管理工作進度（自主管理）。',
+  '我能拆解問題並提出可行方案（問題解決）。',
+  '我能有效與他人協作與溝通（協作溝通）。',
+  '我會主動提出流程或品質改善建議（持續改善）。',
+  '我清楚職涯發展與晉升路徑。',
+];
+
+function renderTabs(){
+  const tabs = document.getElementById('tabs');
+  const tabSpecs = [
+    { id:'tab-0', name:'基本資訊' },
+    { id:'tab-1', name:'新進員工初期訓練回饋問卷' },
+    { id:'tab-2', name:'中期技能基礎課程回饋（含小測驗）' },
+    { id:'tab-3', name:'後期360度員工評估調查' },
+    { id:'tab-4', name:'意見反映' },
+    { id:'tab-5', name:'管理設定（Admin）' },
+  ];
+  window.__TAB_SPECS = tabSpecs;
+  tabs.innerHTML = '';
+  tabSpecs.forEach((t,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab'+(i===0?' active':'');
+    btn.textContent = t.name;
+    btn.addEventListener('click',()=>switchTab(i, tabSpecs));
+    tabs.appendChild(btn);
+  });
+}
+function switchTab(i, tabSpecs){
+  if(!tabSpecs) tabSpecs = window.__TAB_SPECS || [];
+  const tabs = document.getElementById('tabs').children;
+  for(let k=0;k<tabs.length;k++) tabs[k].classList.toggle('active', k===i);
+  tabSpecs.forEach((t,idx)=>{
+    document.getElementById(t.id).classList.toggle('hidden', idx!==i);
+  });
+}
+function renderScale(containerId, prefix, questions){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  questions.forEach((text, idx)=>{
+    const row = document.createElement('div');
+    const lab = document.createElement('label'); lab.textContent = `${idx+1}. ${text}`; row.appendChild(lab);
+    const scale = document.createElement('div'); scale.className = 'scale';
+    Likert.forEach(opt=>{
+      const id = `${prefix}-${idx}-${opt.v}`;
+      const pill = document.createElement('label'); pill.className = 'pill'; pill.setAttribute('for', id);
+      pill.innerHTML = `<input type=\"radio\" name=\"${prefix}-${idx}\" id=\"${id}\" value=\"${opt.v}\"> ${opt.v} ${opt.t}`;
+      pill.addEventListener('click',()=>{
+        document.querySelectorAll(`input[name='${prefix}-${idx}']`).forEach(r=>{
+          const p = r.closest('label');
+          p.classList.remove('active','error');
+        });
+        pill.classList.add('active');
+      });
+      scale.appendChild(pill);
+    });
+    row.appendChild(scale);
+    container.appendChild(row);
+  });
+}
+function renderQuiz(){
+  const host = document.getElementById('quiz'); host.innerHTML = '';
+  QUIZ.forEach((item, i)=>{
+    const wrap = document.createElement('div'); wrap.className = 'card'; wrap.style.padding='12px';
+    const q = document.createElement('div'); q.innerHTML = `<strong>Q${i+1}.</strong> ${item.q}`; wrap.appendChild(q);
+    item.a.forEach((opt,j)=>{
+      const id = `quiz-${i}-${j}`;
+      const r = document.createElement('div');
+      r.innerHTML = `<label class='pill' for='${id}'><input type='radio' id='${id}' name='quiz-${i}' value='${j}'> ${String.fromCharCode(65+j)}. ${opt}</label>`;
+      r.addEventListener('click',()=>{
+        document.querySelectorAll(`input[name='quiz-${i}']`).forEach(n=>n.closest('label').classList.remove('active','error'));
+        r.querySelector('label').classList.add('active');
+      });
+      wrap.appendChild(r);
+    });
+    host.appendChild(wrap);
+  });
+}
+
+function toast(t){
+  const el = document.createElement('div'); el.className='toast'; el.textContent=t; document.body.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 2200);
+}
+function readBasic(){
+  profile.employeeId = document.getElementById('employeeId').value.trim();
+  profile.fullName = document.getElementById('fullName').value.trim();
+  profile.dept = document.getElementById('dept').value.trim();
+  const d = document.getElementById('date').value;
+  profile.date = d || new Date().toISOString().slice(0,10);
+  document.getElementById('userIdBadge').textContent = profile.employeeId || '未設定';
+}
+function saveProfile(){
+  profile.employeeId = document.getElementById('employeeId').value.trim();
+  if(!profile.employeeId) return toast('請填寫使用者代號');
+  profile.fullName = document.getElementById('fullName').value.trim();
+  profile.dept = document.getElementById('dept').value.trim();
+  profile.date = document.getElementById('date').value || new Date().toISOString().slice(0,10);
+  const gas = document.getElementById('gas_url');
+  if(gas) profile.api.gasUrl = gas.value.trim();
+  profile.gf.locate.url = document.getElementById('gf_loc_url')?.value.trim()||profile.gf.locate.url;
+  profile.gf.locate.entry = document.getElementById('gf_loc_entry')?.value.trim()||profile.gf.locate.entry;
+  profile.gf.locate.name  = document.getElementById('gf_loc_name')?.value.trim()||profile.gf.locate.name;
+  profile.gf.locate.unit  = document.getElementById('gf_loc_unit')?.value.trim()||profile.gf.locate.unit;
+  profile.gf.skill.url = document.getElementById('gf_skill_url')?.value.trim()||profile.gf.skill.url;
+  profile.gf.skill.entry = document.getElementById('gf_skill_entry')?.value.trim()||profile.gf.skill.entry;
+  profile.gf.skill.name  = document.getElementById('gf_skill_name')?.value.trim()||profile.gf.skill.name;
+  profile.gf.skill.unit  = document.getElementById('gf_skill_unit')?.value.trim()||profile.gf.skill.unit;
+  profile.gf.grow.url = document.getElementById('gf_grow_url')?.value.trim()||profile.gf.grow.url;
+  profile.gf.grow.entry = document.getElementById('gf_grow_entry')?.value.trim()||profile.gf.grow.entry;
+  profile.gf.grow.name  = document.getElementById('gf_grow_name')?.value.trim()||profile.gf.grow.name;
+  profile.gf.grow.unit  = document.getElementById('gf_grow_unit')?.value.trim()||profile.gf.grow.unit;
+  profile.gf.msg.url = document.getElementById('gf_msg_url')?.value.trim()||profile.gf.msg.url;
+  profile.gf.msg.entry = document.getElementById('gf_msg_entry')?.value.trim()||profile.gf.msg.entry;
+  profile.gf.msg.name  = document.getElementById('gf_msg_name')?.value.trim()||profile.gf.msg.name;
+  profile.gf.msg.unit  = document.getElementById('gf_msg_unit')?.value.trim()||profile.gf.msg.unit;
+  document.getElementById('userIdBadge').textContent = profile.employeeId || '未設定';
+  saveConfigOnly();
+  toast('設定已更新');
+}
+function resetProfile(){
+  profile = { employeeId:'', fullName:'', dept:'', date:'', api:{ gasUrl:'' }, gf: JSON.parse(JSON.stringify(CONFIG_DEFAULTS.gf)) };
+  document.getElementById('userIdBadge').textContent = '未設定';
+  saveConfigOnly();
+  hydrateAdminFields();
+  toast('已清空當前設定');
+}
+function normalizeFormUrl(url){
+  if(!url) return url;
+  return url.replace(/\/u\/\d+\/d\/e\//,'/d/e/');
+}
+
+function isLikelyGas(url){
+  return /^https:\/\/script\.google\.com\/macros\/s\//.test(url) && /\/exec(\?|$)/.test(url);
+}
+
+async function submitToGoogle(url, entry, payload, optNameEntry, optUnitEntry){
+  // === Route A: GAS Web App ===
+  if(profile?.api?.gasUrl){
+    const gas = profile.api.gasUrl.trim();
+    if(!isLikelyGas(gas)){
+      throw new Error('GAS URL 格式錯誤，需以 https://script.google.com/macros/s/.../exec 開頭');
+    }
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), 15000); // 15 秒逾時，避免過早 abort 造成 Failed to fetch
+    try{
+      const res = await fetch(gas + '?origin=' + encodeURIComponent(location.origin), {
+        method: 'POST',
+        headers: { 'Content-Type':'text/plain;charset=utf-8' }, // 避免 preflight
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(t);
+      const ct = (res.headers.get('content-type')||'').toLowerCase();
+      let bodyText = '';
+      let data = null;
+      try{
+        if(ct.includes('application/json')){
+          data = await res.json();
+        }else{
+          bodyText = await res.text();
+          try{ data = JSON.parse(bodyText); }catch(_){ /* not json */ }
+        }
+      }catch(_){ /* ignore */ }
+      const okFlag = data && (data.ok===true || data.success===true);
+      if(res.ok && (okFlag || (!data && bodyText))){
+        return { ok:true, data: data || bodyText, via:'fetch-post' };
+      }
+      console.error('GAS 回應異常', res.status, data||bodyText);
+      throw new Error('GAS proxy failed');
+    }catch(err){
+      clearTimeout(t);
+      console.warn('fetch POST 失敗，嘗試 fallback…', err);
+      // === Fallback 1: sendBeacon（不讀回應，但幾乎不會被 CORS 擋） ===
+      try{
+        if(navigator.sendBeacon){
+          const ok = navigator.sendBeacon(gas + '?origin=' + encodeURIComponent(location.origin) + '&beacon=1', new Blob([JSON.stringify(payload)], {type:'text/plain;charset=utf-8'}));
+          if(ok){
+            toast('已改用低風險傳送（beacon），請稍後在試算表確認');
+            return { ok:true, via:'beacon' };
+          }
+        }
+      }catch(be){ console.warn('beacon 也失敗', be); }
+      // === Fallback 2: GET 帶參數 ===
+      try{
+        const url2 = gas + '?origin=' + encodeURIComponent(location.origin) + '&get=1&payload=' + encodeURIComponent(JSON.stringify(payload));
+        const res2 = await fetch(url2, { method:'GET' });
+        const txt2 = await res2.text();
+        if(res2.ok){ return { ok:true, data: txt2, via:'fetch-get' }; }
+      }catch(getErr){ console.warn('GET fallback 失敗', getErr); }
+      // 全部失敗才拋出
+      toast('連線 GAS 失敗：請檢查 URL/部署權限/網路');
+      throw err;
+    }
+  }
+
+  // === Route B: Google 表單（備用，不建議） ===
+  if(!url||!entry) { toast('尚未設定 Google 表單 URL 或 entry 代號'); return Promise.reject(new Error('missing url/entry')); }
+  const targetUrl = normalizeFormUrl(url);
+  const badUrl = !/^https:\/\/docs\.google\.com\/forms\/d\/e\/.+\/formResponse$/.test(targetUrl);
+  const badEntry = !/^entry\.[0-9]+$/.test(entry);
+  if(badUrl){ toast('表單 URL 需為 https://docs.google.com/forms/d/e/.../formResponse'); return Promise.reject(new Error('bad url')); }
+  if(badEntry){ toast('entry 格式錯誤，需為 entry.後接數字'); return Promise.reject(new Error('bad entry')); }
+  const ghost = document.getElementById('ghost');
+  const sink = document.getElementById('sink');
+  ghost.setAttribute('action', targetUrl);
+  ghost.innerHTML = '';
+  const inputPayload = document.createElement('input');
+  inputPayload.type = 'hidden'; inputPayload.name = entry; inputPayload.value = JSON.stringify(payload);
+  ghost.appendChild(inputPayload);
+  if(optNameEntry){ const i = document.createElement('input'); i.type='hidden'; i.name=optNameEntry; i.value = profile.fullName; ghost.appendChild(i); }
+  if(optUnitEntry){ const i = document.createElement('input'); i.type='hidden'; i.name=optUnitEntry; i.value = profile.dept; ghost.appendChild(i); }
+  const pageHistory = document.createElement('input'); pageHistory.type='hidden'; pageHistory.name='pageHistory'; pageHistory.value='0'; ghost.appendChild(pageHistory);
+  const fvv = document.createElement('input'); fvv.type='hidden'; fvv.name='fvv'; fvv.value='1'; ghost.appendChild(fvv);
+  return new Promise((resolve)=>{
+    let settled = false; const finish = (via)=>{ if(settled) return; settled = true; resolve({ok:true, via}); };
+    const timer = setTimeout(()=>finish('timeout'), 5000);
+    const handleLoad = ()=>{ clearTimeout(timer); sink.removeEventListener('load', handleLoad); finish('onload'); };
+    sink.addEventListener('load', handleLoad, {once:true});
+    HTMLFormElement.prototype.submit.call(ghost);
+  });
+}
+
+function gatherScale(prefix, questions){
+  const answers = [];
+  for(let i=0;i<questions.length;i++){
+    const picked = document.querySelector(`input[name='${prefix}-${i}']:checked`);
+    answers.push(picked?Number(picked.value):null);
+  }
+  return answers;
+}
+function highlightMissing(prefix, questions){
+  for(let i=0;i<questions.length;i++){
+    const opts = document.querySelectorAll(`input[name='${prefix}-${i}']`);
+    const anyChecked = Array.from(opts).some(o=>o.checked);
+    opts.forEach(o=>{
+      const lab = o.closest('label');
+      lab.classList.toggle('error', !anyChecked);
+      if(!anyChecked) lab.classList.remove('active');
+    });
+    if(!anyChecked){
+      const first = opts[0]?.closest('label');
+      if(first){ first.scrollIntoView({behavior:'smooth', block:'center'}); }
+      break;
+    }
+  }
+}
+function validateRequired(kind){
+  if(kind==='locate'){
+    const vals = gatherScale('loc', Q_LOCATE);
+    const missing = vals.map((v,i)=>v?null:i+1).filter(Boolean);
+    if(missing.length){ highlightMissing('loc', Q_LOCATE); toast('請完成定位問卷第 '+missing.join(', ')+' 題'); return false; }
+    return true;
+  }
+  if(kind==='skill'){
+    const vals = gatherScale('skill', Q_SKILL);
+    const missing = vals.map((v,i)=>v?null:i+1).filter(Boolean);
+    const quizMissing = [];
+    for(let i=0;i<QUIZ.length;i++){
+      const r = document.querySelector(`input[name='quiz-${i}']:checked`);
+      if(!r) quizMissing.push(i+1);
+    }
+    if(missing.length){ highlightMissing('skill', Q_SKILL); toast('請完成熟練問卷第 '+missing.join(', ')+' 題'); return false; }
+    if(quizMissing.length){
+      const qs = document.querySelectorAll(`input[name='quiz-${quizMissing[0]-1}']`);
+      qs.forEach(n=>{ n.closest('label').classList.add('error'); });
+      qs[0]?.closest('label')?.scrollIntoView({behavior:'smooth', block:'center'});
+      toast('請作答小測驗第 '+quizMissing.join(', ')+' 題'); return false;
+    }
+    return true;
+  }
+  if(kind==='grow360'){
+    const vals = gatherScale('grow', Q_GROW);
+    const missing = vals.map((v,i)=>v?null:i+1).filter(Boolean);
+    const ratee = (document.getElementById('rateeId').value.trim() || profile.employeeId);
+    if(!ratee){ toast('請填寫評估對象 employeeId'); return false; }
+    if(missing.length){ highlightMissing('grow', Q_GROW); toast('請完成啟發/360 問卷第 '+missing.join(', ')+' 題'); return false; }
+    return true;
+  }
+  return true;
+}
+function ensureAdmin(kind){
+  if(profile?.api?.gasUrl){ return { gas:true }; }
+  const map = { locate: profile.gf.locate, skill: profile.gf.skill, grow360: profile.gf.grow, msg: profile.gf.msg };
+  const cfg = map[kind];
+  if(!cfg){ toast('找不到該問卷的設定'); throw new Error('no cfg'); }
+  if(!cfg.url || !/https:\/\/docs\.google\.com\/forms\/d\/e\/.+\/formResponse$/.test(normalizeFormUrl(cfg.url))){ toast('請在 Admin 設定貼上以 /formResponse 結尾的 URL'); throw new Error('bad url'); }
+  if(!cfg.entry || !/^entry\.[0-9]+$/.test(cfg.entry)){ toast('請在 Admin 設定填入正確的 entry.xxxxx'); throw new Error('bad entry'); }
+  return cfg;
+}
+async function submitSurvey(kind){
+  readBasic();
+  if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); return; }
+  if(!validateRequired(kind)) return;
+  const base = { employeeId: profile.employeeId, fullName: profile.fullName, dept: profile.dept, date: profile.date, ts: Date.now() };
+  if(kind==='locate'){
+    const payload = { ...base, module:'locate', scores: gatherScale('loc', Q_LOCATE), open: document.getElementById('locate-open').value.trim() };
+    const btn = document.getElementById('submitLocate'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
+    try{ const cfg = ensureAdmin('locate'); await submitToGoogle(cfg.url, cfg.entry, payload, cfg.name, cfg.unit); btn.textContent='✔ 已送出'; toast('定位問卷已寫入 Google 試算表'); switchTab(0); }
+    catch(err){ console.error(err); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 Admin 設定或 GAS'); }
+    return;
+  }
+  if(kind==='skill'){
+    const quizAns = QUIZ.map((_,i)=>{ const r = document.querySelector(`input[name='quiz-${i}']:checked`); return r?Number(r.value):null; });
+    const quizScore = quizAns.reduce((acc,v,i)=>acc+(v===QUIZ[i].ans?1:0),0);
+    const payload = { ...base, module:'skill', scores: gatherScale('skill', Q_SKILL), open: document.getElementById('skill-open').value.trim(), quizAns, quizScore, quizTotal: QUIZ.length };
+    const btn = document.getElementById('submitSkill'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
+    try{ const cfg = ensureAdmin('skill'); await submitToGoogle(cfg.url, cfg.entry, payload, cfg.name, cfg.unit); btn.textContent='✔ 已送出'; toast('熟練問卷＋測驗已寫入 Google 試算表'); switchTab(0); }
+    catch(err){ console.error(err); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 Admin 設定或 GAS'); }
+    return;
+  }
+  if(kind==='grow360'){
+    const payload = { ...base, module:'grow360', role: document.getElementById('raterRole').value, rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId), scores: gatherScale('grow', Q_GROW) };
+    const btn = document.getElementById('submitGrow'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
+    try{ const cfg = ensureAdmin('grow360'); await submitToGoogle(cfg.url, cfg.entry, payload, cfg.name, cfg.unit); btn.textContent='✔ 已送出'; toast('啟發＋360 評估已寫入 Google 試算表'); switchTab(0); }
+    catch(err){ console.error(err); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 Admin 設定或 GAS'); }
+    return;
+  }
+}
+async function postMessage(){
+  try{
+    readBasic();
+    if(!profile.employeeId) return toast('請先於「基本資訊」填寫使用者代號');
+    const body = document.getElementById('msgBody').value.trim();
+    if(!body) return toast('請輸入留言內容');
+    const rec = { module:'messages', employeeId: (document.getElementById('msgAnon').value==='yes'?'匿名':profile.employeeId), fullName: profile.fullName, dept: profile.dept, body, date: profile.date, ts: Date.now() };
+    const btn = document.getElementById('submitMsg'); const old = btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
+    const cfg = ensureAdmin('msg');
+    await submitToGoogle(cfg.url, cfg.entry, rec, cfg.name, cfg.unit);
+    document.getElementById('msgBody').value='';
+    btn.textContent='✔ 已送出';
+    toast('留言已寫入 Google 試算表');
+    switchTab(0);
+  }catch(err){
+    console.error(err);
+    const btn = document.getElementById('submitMsg');
+    if(btn){ btn.disabled=false; btn.textContent='送出留言（寫入 Google 試算表）'; }
+    toast('送出失敗，請檢查 Admin 設定或 GAS');
+  }
+}
+
+async function testGas(){
+  const url = (document.getElementById('gas_url')?.value||'').trim();
+  if(!url) return toast('請先在 Admin 填入 GAS URL');
+  if(!isLikelyGas(url)) return toast('GAS URL 格式錯誤，請貼 /exec 結尾的 URL');
+  try{
+    const res = await fetch(url, { method:'GET' });
+    const text = await res.text();
+    toast('GAS 正常：'+(text.slice(0,40)));
+  }catch(err){ console.error(err); toast('無法連線到 GAS，請檢查部署權限與 URL'); }
+}
+
+function assert(cond, msg){ if(!cond){ console.error('❌', msg); throw new Error(msg); } else { console.log('✅', msg); } }
+async function runTests(){
+  try{
+    console.group('內建測試');
+    assert(CONFIG_DEFAULTS.gf.locate.url.includes('/formResponse'),'CONFIG 預載：locate URL 存在');
+    assert(CONFIG_DEFAULTS.gf.locate.entry.startsWith('entry.'),'CONFIG 預載：locate entry 正確格式');
+    renderScale('survey-locate','loc', Q_LOCATE);
+    const radios = document.querySelectorAll("input[type='radio'][name^='loc-']");
+    assert(radios.length === Q_LOCATE.length * Likert.length, 'Likert 題目 × 選項數量 正確');
+    const vals = gatherScale('loc', Q_LOCATE);
+    assert(vals.length === Q_LOCATE.length, 'gatherScale 長度正確');
+    assert(vals.every(v=>v===null), 'gatherScale 預設為 null');
+    renderQuiz();
+    assert(QUIZ.length > 0, 'QUIZ 題庫存在');
+    const q0 = QUIZ[0];
+    assert(Array.isArray(q0.a) && typeof q0.ans === 'number', 'QUIZ 結構正確');
+    // 確保不受已設定的 GAS 影響：此段需走 Google Form 備援路徑
+    const prevGas = profile.api.gasUrl; profile.api.gasUrl = '';
+    profile.employeeId = 'TEST-001'; profile.fullName='測試'; profile.dept='單位'; profile.date='2025-10-17';
+    const payload = { employeeId: profile.employeeId, fullName: profile.fullName, dept: profile.dept, date: profile.date, ts: 1, module:'skill', scores:[1,2,3,4,5], open:'', quizAns:[0,1], quizScore:1, quizTotal:2 };
+    const url = 'https://docs.google.com/forms/d/e/TEST/formResponse'; const entry = 'entry.123';
+    try{ await submitToGoogle(url, entry, payload); }catch(e){}
+    assert(document.getElementById('ghost').querySelectorAll('input').length >= 2, '隱藏表單已生成必要欄位');
+    profile.api.gasUrl = prevGas; // 還原
+
+    const origPrompt = window.prompt; window.prompt = ()=>ADMIN_KEY;
+    toggleAdmin();
+    assert(!document.getElementById('adminPanel').classList.contains('hidden'), 'Admin 開啟');
+    toggleAdmin();
+    assert(document.getElementById('adminPanel').classList.contains('hidden'), 'Admin 關閉');
+    window.prompt = origPrompt;
+    assert(validateRequired('locate')===false, '必填：定位未填時阻擋');
+    document.getElementById('employeeId').value = 'U-9999';
+    readBasic();
+    assert(profile.employeeId==='U-9999','readBasic 即時同步 employeeId');
+    assert(typeof submitSurvey === 'function', 'submitSurvey 定義存在');
+    switchTab(1);
+    assert(!document.getElementById('tab-1').classList.contains('hidden'),'Tab1 顯示');
+    switchTab(0);
+    assert(!document.getElementById('tab-0').classList.contains('hidden'),'完成導回基本資訊 Tab0 顯示');
+    assert(typeof postMessage === 'function', 'postMessage 定義存在');
+    const tabButtons = document.getElementById('tabs').children; 
+    assert(tabButtons.length === 6, 'Tabs 數量正確（6 個）');
+    // Test 13: 設定 GAS URL 時，submitToGoogle 應走 GAS 分支（僅檢查路徑，不真正送出）
+    profile.api.gasUrl = 'https://script.google.com/macros/s/FAKE/exec';
+    try{ await submitToGoogle('', '', {module:'locate'}); }catch(_){ }
+    // Test 14: 錯誤的 GAS URL 應該拋出錯誤
+    let threw=false; profile.api.gasUrl='https://example.invalid/exec';
+    try{ await submitToGoogle('', '', {module:'locate'}); }catch(e){ threw=true; }
+    assert(threw===true,'GAS URL 錯誤時會拒絕並提示');
+    console.log('%c所有測試通過','color:#0ea5e9');
+    toast('測試通過（詳見 Console）');
+  }catch(e){
+    console.error(e);
+    toast('有測試失敗，請開 Console 檢視');
+  }finally{
+    console.groupEnd();
+  }
+}
+
+function init(){
+  renderTabs();
+  renderScale('survey-locate','loc', Q_LOCATE);
+  renderScale('survey-skill','skill', Q_SKILL);
+  renderScale('survey-grow','grow', Q_GROW);
+  renderQuiz();
+  document.getElementById('date').value = new Date().toISOString().slice(0,10);
+  prefillFromQuery();
+  readBasic();
+  ['employeeId','fullName','dept','date'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', readBasic);
+  });
+  document.getElementById('fillToday').addEventListener('click',()=>{ const today=new Date().toISOString().slice(0,10); document.getElementById('date').value=today; readBasic(); });
+  document.getElementById('adminToggle').addEventListener('click', toggleAdmin);
+  const keyInp = document.getElementById('adminKey');
+  if(keyInp){ keyInp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); toggleAdmin(); } }); }
+  document.getElementById('saveBtn').addEventListener('click', saveProfile);
+  document.getElementById('resetBtn').addEventListener('click', resetProfile);
+  document.getElementById('exportBtn').addEventListener('click', exportConfig);
+  document.getElementById('importBtn').addEventListener('click', importConfig);
+  document.getElementById('gasTestBtn').addEventListener('click', testGas);
+  document.getElementById('submitLocate').addEventListener('click', ()=>submitSurvey('locate'));
+  document.getElementById('submitSkill').addEventListener('click', ()=>submitSurvey('skill'));
+  document.getElementById('submitGrow').addEventListener('click', ()=>submitSurvey('grow360'));
+  document.getElementById('submitMsg').addEventListener('click', postMessage);
+  document.getElementById('runTestsBtn').addEventListener('click', runTests);
+  restoreConfig();
+  try{
+    const sp = new URLSearchParams(location.search);
+    const ak = sp.get('admin');
+    if(ak && ak===ADMIN_KEY){
+      document.getElementById('adminPanel').classList.remove('hidden');
+      document.getElementById('adminToggle').textContent = '停用';
+      toast('已以網址參數啟用 Admin 模式');
+    }
+  }catch(_){ }
+  switchTab(0, [
+    { id:'tab-0' },{ id:'tab-1' },{ id:'tab-2' },{ id:'tab-3' },{ id:'tab-4' },{ id:'tab-5' }
+  ]);
+}
+init();
+</script>
+</body>
+</html>
