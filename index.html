@@ -28,8 +28,6 @@
     .toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
-      table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
     /* 高亮已選的單選框所在儲存格（現代瀏覽器支援 :has） */
     td:has(input[type=radio]:checked){background:var(--active)}
   </style>
@@ -261,7 +259,6 @@
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload)
     });
     if(!res.ok) throw new Error('GAS 回應非 200');
-    // 無須解析內容；GAS 已返回 JSON
     return true;
   }
 
@@ -280,7 +277,18 @@
   }
   async function submitGrow(){
     if(!validate('grow360')) return;
-    const payload = { module:'grow360', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('gr'), role: document.getElementById('raterRole').value, rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId) };
+    const payload = {
+      module:'grow360',
+      employeeId:profile.employeeId,
+      fullName:profile.fullName,
+      dept:profile.dept,
+      date:profile.date,
+      ts:Date.now(),
+      scores: readGroup('gr'),
+      role: document.getElementById('raterRole').value,
+      rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId),
+      open: document.getElementById('grow-open').value.trim()   // ★ 加上質性欄位
+    };
     const btn = document.getElementById('submitGrow'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
     try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('360 問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
@@ -308,20 +316,17 @@
 
   /* ===== init ===== */
   function init(){
-    // tabs
     renderTabs();
     ['tab-1','tab-2','tab-3','tab-4','tab-5'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     applyHash();
     window.addEventListener('hashchange', applyHash);
 
-    // basic
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('date').value = today;
     document.getElementById('fillToday').addEventListener('click', ()=>{ document.getElementById('date').value = new Date().toISOString().slice(0,10); readBasic(); });
     ['employeeId','fullName','dept','date'].forEach(id=> document.getElementById(id).addEventListener('input', readBasic));
     readBasic();
 
-    // actions
     document.getElementById('submitLocate').addEventListener('click', submitLocate);
     document.getElementById('submitSkill').addEventListener('click', submitSkill);
     document.getElementById('submitGrow').addEventListener('click', submitGrow);
@@ -330,6 +335,6 @@
     document.getElementById('gasTestBtn').addEventListener('click', testGas);
   }
   init();
-</script>
+  </script>
 </body>
 </html>
