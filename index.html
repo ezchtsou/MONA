@@ -28,7 +28,9 @@
     .toast{position:fixed;right:16px;bottom:16px;padding:10px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
-    /* 單選選到高亮 */
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
+    /* 高亮已選的單選框所在儲存格（現代瀏覽器支援 :has） */
     td:has(input[type=radio]:checked){background:var(--active)}
   </style>
 </head>
@@ -42,9 +44,7 @@
       <nav id="tabs" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></nav>
     </div>
   </header>
-
   <main class="wrap">
-    <!-- Tab 0: 基本資訊 -->
     <section id="tab-0" class="card">
       <h2>🔑 基本資訊</h2>
       <div class="row">
@@ -70,7 +70,6 @@
       </div>
     </section>
 
-    <!-- Tab 1: 初期訓練問卷 -->
     <section id="tab-1" class="card">
       <h2>🩵 初期訓練問卷</h2>
       <p>請針對以下五項指標進行評分（1分＝非常不同意，5分＝非常同意）：</p>
@@ -87,7 +86,6 @@
       <div class="btns"><button class="primary" id="submitLocate" type="button">送出定位問卷</button></div>
     </section>
 
-    <!-- Tab 2: 中期技能課程回饋 -->
     <section id="tab-2" class="card">
       <h2>💡 中期技能課程回饋</h2>
       <p>請評估以下學習成效（1分＝非常不同意，5分＝非常同意）：</p>
@@ -104,7 +102,6 @@
       <div class="btns"><button class="primary" id="submitSkill" type="button">送出技能問卷</button></div>
     </section>
 
-    <!-- Tab 3: 後期360度評估 -->
     <section id="tab-3" class="card">
       <h2>🔶 後期360度評估</h2>
       <div class="row" style="margin-bottom:8px">
@@ -135,9 +132,7 @@
       <textarea id="grow-open" placeholder="請具體描述受評者的優勢表現、待改進之處或其他觀察"></textarea>
       <div class="btns"><button class="primary" id="submitGrow" type="button">送出 360 問卷</button></div>
     </section>
-  </main>
 
-    <!-- Tab 4: 意見反映 -->
     <section id="tab-4" class="card">
       <h2>💬 意見反映</h2>
       <div class="row">
@@ -153,7 +148,6 @@
       </div>
     </section>
 
-    <!-- Tab 5: 管理設定（Admin） -->
     <section id="tab-5" class="card">
       <h2>🛠️ 管理設定（Admin）</h2>
       <p class="muted">輸入金鑰後可編輯 GAS URL；預設已設定為你的 /exec。</p>
@@ -171,9 +165,9 @@
       </div>
     </section>
   </main>
-
   <script>
   const ADMIN_KEY = 'MONAADMIN2025';
+  const STORAGE_KEY = 'mona_onboarding_cfg_v4';
   let profile = {
     employeeId:'', fullName:'', dept:'', date:'',
     api:{ gasUrl:'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec' }
@@ -211,6 +205,7 @@
       if(!sec) return;
       if(i===index) sec.style.display='block'; else sec.style.display='none';
     });
+    // 同步 URL hash
     const names = ['basic','locate','skill','grow360','messages','admin'];
     const h = names[index] || 'basic';
     if(location.hash !== '#'+h) history.replaceState(null,'','#'+h);
@@ -233,6 +228,7 @@
 
   /* ===== Gather scores (table radios) ===== */
   function readGroup(prefix){
+    // 讀取 loc1..loc5 / sk1..sk5 / gr1..gr5
     const out = [];
     for(let i=1;i<=5;i++){
       const r = document.querySelector(`input[name='${prefix}${i}']:checked`);
@@ -250,73 +246,23 @@
     const miss = vals.map((v,i)=> v?null:i+1).filter(Boolean);
     if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
     if(kind==='grow360'){
-  const payload = {
-    ...base,
-    module:'grow360',
-    role: document.getElementById('raterRole').value,
-    rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId),
-    scores: gatherScale('grow', Q_GROW),
-    open: document.getElementById('grow-open').value.trim()  // ★ 新增
-  };
-  const btn = document.getElementById('submitGrow');
-  const old = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '傳送中…';
-  try{
-    const cfg = ensureAdmin('grow360');
-    await submitToGoogle(cfg.url, cfg.entry, payload, cfg.name, cfg.unit);
-    btn.textContent = '✔ 已送出';
-    toast('啟發＋360 評估已寫入 Google 試算表');
-    switchTab(0);
-  }catch(err){
-    console.error(err);
-    btn.disabled = false;
-    btn.textContent = old;
-    toast('送出失敗，請檢查 Admin 設定或 GAS');
-  }
-  return;
+      const ratee = (document.getElementById('rateeId').value.trim() || profile.employeeId);
+      if(!ratee){ toast('請填寫評估對象 employeeId'); return false; }
+    }
+    return true;
   }
 
-  /* ===== GAS（含容錯） ===== */
+  /* ===== GAS ===== */
   function isLikelyGas(url){ return /^https:\/\/script\.google\.com\/macros\/s\//.test(url) && /\/exec(\?|$)/.test(url); }
   async function submitToGAS(payload){
     const gas = (document.getElementById('gas_url')?.value || profile.api.gasUrl || '').trim();
     if(!isLikelyGas(gas)) throw new Error('GAS URL 格式錯誤');
-
-    const controller = new AbortController();
-    const t = setTimeout(()=>controller.abort(), 20000); // 20s timeout，避免長掛
-
-    try{
-      const res = await fetch(gas + '?origin=' + encodeURIComponent(location.origin), {
-        method:'POST',
-        headers:{'Content-Type':'text/plain;charset=utf-8'}, // 避免 CORS preflight
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      clearTimeout(t);
-      if(res.ok) return true;
-      throw new Error('GAS 回應非 200');
-    }catch(err){
-      clearTimeout(t);
-      console.warn('fetch 失敗，嘗試 fallback：', err);
-      // Fallback 1: sendBeacon（最不易被擋，無回傳）
-      try{
-        if(navigator.sendBeacon){
-          const ok = navigator.sendBeacon(
-            gas + '?origin=' + encodeURIComponent(location.origin) + '&beacon=1',
-            new Blob([JSON.stringify(payload)], {type:'text/plain;charset=utf-8'})
-          );
-          if(ok) return true;
-        }
-      }catch(_){/* ignore */}
-      // Fallback 2: GET 帶 payload（僅適合小量資料）
-      try{
-        const url2 = gas + '?origin=' + encodeURIComponent(location.origin) + '&get=1&payload=' + encodeURIComponent(JSON.stringify(payload));
-        const res2 = await fetch(url2, { method:'GET' });
-        if(res2.ok) return true;
-      }catch(_){/* ignore */}
-      throw err;
-    }
+    const res = await fetch(gas + '?origin=' + encodeURIComponent(location.origin), {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('GAS 回應非 200');
+    // 無須解析內容；GAS 已返回 JSON
+    return true;
   }
 
   /* ===== Submit handlers ===== */
@@ -324,32 +270,32 @@
     if(!validate('locate')) return;
     const payload = { module:'locate', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('loc'), open: document.getElementById('locate-open').value.trim() };
     const btn = document.getElementById('submitLocate'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('定位問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 GAS 部署或網路'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('定位問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitSkill(){
     if(!validate('skill')) return;
     const payload = { module:'skill', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('sk'), open: document.getElementById('skill-open').value.trim(), quizScore:0, quizTotal:0 };
     const btn = document.getElementById('submitSkill'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('技能問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 GAS 部署或網路'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('技能問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitGrow(){
     if(!validate('grow360')) return;
-    const payload = { module:'grow360', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('gr'), role: document.getElementById('raterRole').value, rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId), open: document.getElementById('grow-open').value.trim() };
+    const payload = { module:'grow360', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('gr'), role: document.getElementById('raterRole').value, rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId) };
     const btn = document.getElementById('submitGrow'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('360 問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 GAS 部署或網路'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('360 問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitMsg(){
     readBasic(); if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return; }
     const body = document.getElementById('msgBody').value.trim(); if(!body){ toast('請輸入留言內容'); return; }
     const payload = { module:'messages', employeeId:(document.getElementById('msgAnon').value==='yes'?'匿名':profile.employeeId), fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), body };
     const btn = document.getElementById('submitMsg'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; document.getElementById('msgBody').value=''; toast('留言已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗，請檢查 GAS 部署或網路'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; document.getElementById('msgBody').value=''; toast('留言已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
 
   /* ===== Admin unlock & test ===== */
   function unlockAdmin(){
     const key = document.getElementById('adminKey').value.trim();
-    if(key!=='MONAADMIN2025') return toast('金鑰錯誤');
+    if(key!==ADMIN_KEY) return toast('金鑰錯誤');
     const input = document.getElementById('gas_url');
     input.removeAttribute('readonly');
     toast('已解鎖 GAS URL 可編輯');
@@ -360,41 +306,30 @@
     try{ const r = await fetch(url,{method:'GET'}); toast(r.ok?'PING OK':'PING 失敗'); }catch(_){ toast('PING 失敗'); }
   }
 
-  /* ===== Self tests（僅在 #test 啟動） ===== */
-  function runSelfTests(){
-    try{
-      console.group('自動化檢查');
-      console.assert(typeof submitToGAS === 'function','submitToGAS 存在');
-      console.assert(document.getElementById('submitGrow'),'submitGrow 按鈕存在');
-      console.assert(document.getElementById('grow-open'),'grow-open 欄位存在');
-      console.assert(/exec$/.test(document.getElementById('gas_url').value),'GAS URL 看似正確');
-      console.groupEnd();
-    }catch(e){ console.warn('自動化檢查例外', e); }
-  }
-
   /* ===== init ===== */
   function init(){
+    // tabs
     renderTabs();
     ['tab-1','tab-2','tab-3','tab-4','tab-5'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     applyHash();
     window.addEventListener('hashchange', applyHash);
 
+    // basic
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('date').value = today;
     document.getElementById('fillToday').addEventListener('click', ()=>{ document.getElementById('date').value = new Date().toISOString().slice(0,10); readBasic(); });
     ['employeeId','fullName','dept','date'].forEach(id=> document.getElementById(id).addEventListener('input', readBasic));
     readBasic();
 
+    // actions
     document.getElementById('submitLocate').addEventListener('click', submitLocate);
     document.getElementById('submitSkill').addEventListener('click', submitSkill);
     document.getElementById('submitGrow').addEventListener('click', submitGrow);
     document.getElementById('submitMsg').addEventListener('click', submitMsg);
     document.getElementById('adminUnlock').addEventListener('click', unlockAdmin);
     document.getElementById('gasTestBtn').addEventListener('click', testGas);
-
-    if(location.hash==="#test") runSelfTests();
   }
   init();
-  </script>
+</script>
 </body>
 </html>
