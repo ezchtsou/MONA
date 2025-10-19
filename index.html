@@ -250,10 +250,31 @@
     const miss = vals.map((v,i)=> v?null:i+1).filter(Boolean);
     if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
     if(kind==='grow360'){
-      const ratee = (document.getElementById('rateeId').value.trim() || profile.employeeId);
-      if(!ratee){ toast('請填寫評估對象 employeeId'); return false; }
-    }
-    return true;
+  const payload = {
+    ...base,
+    module:'grow360',
+    role: document.getElementById('raterRole').value,
+    rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId),
+    scores: gatherScale('grow', Q_GROW),
+    open: document.getElementById('grow-open').value.trim()  // ★ 新增
+  };
+  const btn = document.getElementById('submitGrow');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '傳送中…';
+  try{
+    const cfg = ensureAdmin('grow360');
+    await submitToGoogle(cfg.url, cfg.entry, payload, cfg.name, cfg.unit);
+    btn.textContent = '✔ 已送出';
+    toast('啟發＋360 評估已寫入 Google 試算表');
+    switchTab(0);
+  }catch(err){
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = old;
+    toast('送出失敗，請檢查 Admin 設定或 GAS');
+  }
+  return;
   }
 
   /* ===== GAS（含容錯） ===== */
