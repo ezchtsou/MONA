@@ -125,18 +125,41 @@
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
 window.toast = window.toast || (msg => alert(msg));
 
-// 你可改成自己的 POST；預設用 GET 串 GAS（支援 ?gas=... 或 #tab-5 欄位）
+// 以 GET 對 GAS /exec 送資料；自動處理 file:// 與更清楚的錯誤訊息
 async function submitToGAS(payload){
   const inputEl = document.getElementById('gas_url');
-  const fromQS = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
+  const fromQS  = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
   const endpoint = window.GAS_ENDPOINT || fromQS || (inputEl && inputEl.value);
-  if(!endpoint) throw new Error('缺少 GAS Web App URL（可在網址 ?gas=...，或在 #tab-5 輸入）');
-  const url = endpoint + '?get=1&origin='+encodeURIComponent(location.origin)+'&payload='+encodeURIComponent(JSON.stringify(payload));
-  const res = await fetch(url, { method:'GET' });
-  const data = await res.json();
-  if(!res.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
-  return data;
+  if(!endpoint) throw new Error('未設定 GAS Web App URL（可在網址 ?gas=... 或 #管理設定 填入）');
+
+  // 若是 file:// 開啟，避免送出 origin='null' 被後端擋
+  const isFile = location.protocol === 'file:';
+  const originParam = isFile ? '' : ('&origin='+encodeURIComponent(location.origin));
+
+  const url = endpoint + '?get=1' + originParam + '&payload='+encodeURIComponent(JSON.stringify(payload));
+  let res, text;
+  try {
+    res  = await fetch(url, { method:'GET', mode:'cors', credentials:'omit' });
+  } catch (e) {
+    throw new Error('無法連線到 GAS（可能網路/CORS）：' + (e.message || '連線失敗'));
+  }
+
+  // 嘗試解析 JSON；如果不是 JSON，回傳前 200 字當線索
+  try {
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    return data;
+  } catch (e) {
+    try {
+      text = await res.text();
+      // Apps Script 若沒跑到 doGet/doPost，常回 HTML；給你前 200 字提示
+      throw new Error('GAS 非 JSON 回應（可能打到舊部署或被拒）：' + text.slice(0,200));
+    } catch {
+      throw new Error('load failed');
+    }
+  }
 }
+
 
 /***** 1) 設定：所有問卷集中在這裡 *****/
 const FORM_CONFIG = {
