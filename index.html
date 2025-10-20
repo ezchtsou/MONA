@@ -125,29 +125,30 @@
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
 window.toast = window.toast || (msg => alert(msg));
 
-// 不帶 origin，避免白名單擋；輸出更清楚的錯誤訊息
+// 用 POST 提交（最穩定），不傳 origin 參數
 async function submitToGAS(payload){
   const inputEl = document.getElementById('gas_url');
   const fromQS  = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
   const endpoint = window.GAS_ENDPOINT || fromQS || (inputEl && inputEl.value);
   if(!endpoint) throw new Error('未設定 GAS Web App URL（可在網址 ?gas=... 或 #管理設定 填入）');
 
-  const url = endpoint + '?get=1&payload='+encodeURIComponent(JSON.stringify(payload));
-
-  let res;
+  let res, text;
   try {
-    res = await fetch(url, { method:'GET' });
+    res = await fetch(endpoint + '?post=1', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+      // credentials 不帶：讓它不要混雜登入狀態
+    });
   } catch (e) {
-    throw new Error('無法連線到 GAS（網路/CORS）: ' + (e.message || '連線失敗'));
+    throw new Error('無法連線到 GAS（網路/CORS）：' + (e.message || '連線失敗'));
   }
 
-  // 嘗試解析 JSON；若不是 JSON，就把文字回應前 200 字顯示出來
-  let text;
   try {
     const data = await res.json();
-    if(!data.ok) throw new Error(data.error || 'GAS 回傳失敗');
+    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     return data;
-  } catch {
+  } catch (e) {
     try {
       text = await res.text();
       throw new Error('GAS 非 JSON 回應（可能打到舊部署或權限不足）：' + text.slice(0,200));
