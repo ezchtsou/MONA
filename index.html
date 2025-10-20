@@ -209,46 +209,46 @@
   function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2200);}  
 
   /* ===== Tabs ===== */
-  function renderTabs(){
-    const tabsHost = document.getElementById('tabs');
-    const specs = [
-      {id:'tab-0', name:'基本資訊'},
-      {id:'tab-1', name:'初期訓練回饋'},
-      {id:'tab-2', name:'中期技能回饋'},
-      {id:'tab-3', name:'後期360度全方位評估'},
-      {id:'tab-6', name:'每周問卷'}
-      {id:'tab-4', name:'意見反映'},
-      {id:'tab-5', name:'管理設定'}
-    ];
-    window.__TAB_SPECS = specs;
-    tabsHost.innerHTML = '';
-    specs.forEach((t, i)=>{
-      const btn = document.createElement('button');
-      btn.className = 'tab'+(i===0?' active':'');
-      btn.textContent = t.name;
-      btn.addEventListener('click',()=>switchTab(i));
-      tabsHost.appendChild(btn);
-    });
-  }
-  function switchTab(index){
-    const specs = window.__TAB_SPECS || [];
-    const tabs = document.getElementById('tabs').children;
-    for(let i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', i===index);
-    specs.forEach((t, i)=>{
-      const sec = document.getElementById(t.id);
-      if(!sec) return;
-      if(i===index) sec.style.display='block'; else sec.style.display='none';
-    });
-    // 同步 URL hash
-    const names = ['basic','locate','skill','grow360','weekly','messages','admin'];
-    const h = names[index] || 'basic';
-    if(location.hash !== '#'+h) history.replaceState(null,'','#'+h);
-  }
-  function applyHash(){
-    const map = { basic:0, locate:1, skill:2, grow360:3, weekly:4, messages:5, admin:6 };
-    const key = (location.hash||'').replace('#','');
-    switchTab(map[key] ?? 0);
-  }
+ function renderTabs(){
+  const tabsHost = document.getElementById('tabs');
+  const specs = [
+    {id:'tab-0', name:'基本資訊'},
+    {id:'tab-1', name:'初期訓練'},
+    {id:'tab-2', name:'中期技能'},
+    {id:'tab-3', name:'後期360'},
+    {id:'tab-6', name:'每周問卷'}, // ★ 新增
+    {id:'tab-4', name:'意見反映'},
+    {id:'tab-5', name:'管理設定'}
+  ];
+  window.__TAB_SPECS = specs;
+  tabsHost.innerHTML = '';
+  specs.forEach((t, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab'+(i===0?' active':'');
+    btn.textContent = t.name;
+    btn.addEventListener('click', ()=> switchTab(i));
+    tabsHost.appendChild(btn);
+  });
+function switchTab(index){
+  const specs = window.__TAB_SPECS || [];
+  const tabs = document.getElementById('tabs').children;
+  for(let i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', i===index);
+  specs.forEach((t, i)=>{
+    const sec = document.getElementById(t.id);
+    if(!sec) return;
+    sec.style.display = (i===index) ? 'block' : 'none';
+  });
+  // 同步 URL hash（順序需與 specs 對齊）
+  const names = ['basic','locate','skill','grow360','weekly','messages','admin']; // ★
+  const h = names[index] || 'basic';
+  if(location.hash !== '#'+h) history.replaceState(null, '', '#'+h);
+}
+
+function applyHash(){
+  const map = { basic:0, locate:1, skill:2, grow360:3, weekly:4, messages:5, admin:6 }; // ★
+  const key = (location.hash||'').replace('#','');
+  switchTab(map[key] ?? 0);
+}
 
   /* ===== Basic ===== */
   function readBasic(){
@@ -379,10 +379,13 @@
 
   /* ===== init ===== */
   function init(){
-    renderTabs();
-    ['tab-1','tab-2','tab-3','tab-4','tab-5','tab-6'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    applyHash();
-    window.addEventListener('hashchange', applyHash);
+  renderTabs();
+  ['tab-1','tab-2','tab-3','tab-4','tab-5','tab-6'].forEach(id=>{ // ★
+    const el = document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+  applyHash();
+  window.addEventListener('hashchange', applyHash);
 
     const today = new Date().toISOString().slice(0,10);
     document.getElementById('date').value = today;
