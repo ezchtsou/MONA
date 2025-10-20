@@ -113,7 +113,7 @@
         </div>
         <div>
           <label>GAS Web App URL（/exec）</label>
-          <input id="gas_url" type="text" value="https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec" readonly />
+          <input id="gas_url" type="text" value="https://script.google.com/macros/s/AKfycbwWWDad9yXSQj8pyQZwf5PWLaMwcocgNavJLUmj30OepO2q0geRHaFE-WCEPMgY29TM/exec" readonly />
           <div class="btns"><button id="gasTestBtn" type="button">測試連線（PING）</button></div>
         </div>
       </div>
@@ -166,17 +166,28 @@ const FORM_CONFIG = {
       extras:[{key:'quizScore',label:'小測得分'},{key:'quizTotal',label:'小測滿分'}]
     },
 
-    { id:'tab-3', name:'後期360', kind:'grow360', prefix:'gr',
-      likertTexts:[
-        '能與同事保持良好溝通與協作。',
-        '工作態度積極且具責任感。',
-        '能主動提出改善建議或解決問題。',
-        '在壓力下仍能維持穩定表現。',
-        '整體表現符合單位期望。'
+    { id:'tab-3', name:'後期全方位評估', kind:'grow360', prefix:'gr',
+  likertTexts:[
+    '能與同事保持良好溝通與協作。',
+    '工作態度積極且具責任感。',
+    '能主動提出改善建議或解決問題。',
+    '在壓力下仍能維持穩定表現。',
+    '整體表現符合單位期望。'
+  ],
+  opens:['補充說明'],
+  extras:[
+    { key:'role',   label:'角色', type:'select', required:true,
+      options:[
+        {value:'self',    label:'自評（預設）'},
+        {value:'manager', label:'直屬主管'},
+        {value:'peer',    label:'同事'},
+        {value:'mentor',  label:'導師'}
       ],
-      opens:['補充說明（質性意見）'],
-      extras:[{key:'role',label:'360 角色'},{key:'rateeId',label:'評估對象（employeeId）'}]
+      default:'self'
     },
+    { key:'rateeId',label:'評估對象（employeeId）', required:true }
+  ]
+},
 
     { id:'tab-4', name:'意見反映', kind:'messages',
       opens:['留言內容']
@@ -270,12 +281,29 @@ function renderAllForms(){
           <textarea id="${tab.id}-open-${i}" placeholder="請填寫"></textarea>
         `).join('');
       }
-      if (Array.isArray(tab.extras)) {
-        html += tab.extras.map(ex=>`
-          <label>${ex.label}</label>
-          <input id="${tab.id}-extra-${ex.key}" type="text" placeholder="${ex.label}">
-        `).join('');
-      }
+      // 額外欄位（extras）
+if (Array.isArray(tab.extras)) {
+  html += tab.extras.map(ex=>{
+    if (ex.type === 'select') {
+      const opts = (ex.options||[]).map(o=>{
+        const sel = (o.value === ex.default) ? ' selected' : '';
+        return `<option value="${o.value}"${sel}>${o.label}</option>`;
+      }).join('');
+      return `
+        <label>${ex.label}${ex.required?'（必填）':''}</label>
+        <select id="${tab.id}-extra-${ex.key}">${opts}</select>
+      `;
+    } else {
+      // text 輸入
+      const ph = ex.label + (ex.required?'（必填）':'');
+      const val = ex.default ? ` value="${ex.default}"` : '';
+      return `
+        <label>${ex.label}${ex.required?'（必填）':''}</label>
+        <input id="${tab.id}-extra-${ex.key}" type="text" placeholder="${ph}"${val}>
+      `;
+    }
+  }).join('');
+}
     }
     let host = sec.querySelector('.form-host');
     if(!host){ host = document.createElement('div'); host.className='form-host'; const btns=sec.querySelector('.btns'); sec.insertBefore(host, btns||null); }
@@ -305,10 +333,14 @@ function buildPayload(tab){
     date:       profile.date,
     ts:         Date.now()
   };
+
+  // messages：只送 body
   if (tab.kind === 'messages') {
     const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
     return { ...base, body };
   }
+
+  // 其它問卷：scores / opens / extras
   const scores = Array.isArray(tab.likertTexts) ? readLikert(tab.prefix, tab.likertTexts.length) : [];
   const opens  = Array.isArray(tab.opens) ? tab.opens.map((_,i)=> (document.getElementById(`${tab.id}-open-${i}`)?.value||'').trim()) : [];
   const extras = {};
@@ -318,23 +350,49 @@ function buildPayload(tab){
       extras[ex.key] = v.trim();
     });
   }
+
+  // ★ grow360 保底：role 預設 self；rateeId 空白時帶本人 ID
+  if (tab.kind === 'grow360') {
+    if (!extras.role) extras.role = 'self';
+    if (!extras.rateeId && profile?.employeeId) extras.rateeId = profile.employeeId;
+  }
+
   return { ...base, scores, opens, extras };
 }
+
 function validateTab(tab){
   if (typeof readBasic === 'function') readBasic();
   if(!profile?.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
+
   if (tab.kind === 'messages') {
     const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
     if(!body){ toast('請輸入意見內容'); return false; }
     return true;
   }
+
+  // Likert 必填檢查
   if (Array.isArray(tab.likertTexts)) {
     const vals = readLikert(tab.prefix, tab.likertTexts.length);
     const miss = vals.map((v,i)=> v==null ? (i+1) : null).filter(Boolean);
     if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
   }
+
+  // ★ extras 必填檢查（例如 grow360 的 role / rateeId）
+  if (Array.isArray(tab.extras)) {
+    for (const ex of tab.extras) {
+      if (!ex.required) continue;
+      let v = document.getElementById(`${tab.id}-extra-${ex.key}`)?.value?.trim() || '';
+      // grow360：rateeId 可用本人 ID 作為預設
+      if (tab.kind === 'grow360' && ex.key === 'rateeId' && !v && profile?.employeeId) {
+        v = profile.employeeId;
+        const el = document.getElementById(`${tab.id}-extra-${ex.key}`); if (el) el.value = v;
+      }
+      if (!v) { toast(`${ex.label} 為必填`); return false; }
+    }
+  }
   return true;
 }
+
 async function submitByKind(kind){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind===kind);
   if(!tab) return;
@@ -352,6 +410,18 @@ async function submitByKind(kind){
     console.error(e);
     if(btn){ btn.disabled=false; btn.textContent=old; }
     toast('送出失敗：'+e.message);
+    if (Array.isArray(tab.extras)) {
+  for (const ex of tab.extras) {
+    if (ex.required) {
+      const v = document.getElementById(`${tab.id}-extra-${ex.key}`)?.value?.trim() || '';
+      if (!v && !(tab.kind==='grow360' && ex.key==='rateeId' && profile?.employeeId)) {
+        toast(`${ex.label} 為必填`);
+        return false;
+      }
+    }
+  }
+}
+
   }
 }
 
