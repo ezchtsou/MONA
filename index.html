@@ -81,7 +81,7 @@
       </table>
       <label>開放意見</label>
       <textarea id="locate-open" placeholder="請提供其他意見或建議"></textarea>
-      <div class="btns"><button class="primary" id="submitLocate" type="button">送出定位問卷</button></div>
+      <div class="btns"><button class="primary" id="submitLocate" type="button">送出初期問卷</button></div>
     </section>
 
     <section id="tab-2" class="card">
@@ -97,7 +97,7 @@
       </table>
       <label>開放意見</label>
       <textarea id="skill-open" placeholder="請提供其他意見或建議"></textarea>
-      <div class="btns"><button class="primary" id="submitSkill" type="button">送出技能問卷</button></div>
+      <div class="btns"><button class="primary" id="submitSkill" type="button">送出中期問卷</button></div>
     </section>
 
     <section id="tab-3" class="card">
@@ -128,7 +128,7 @@
       </table>
       <label>補充說明（質性意見）</label>
       <textarea id="grow-open" placeholder="請具體描述受評者的優勢表現、待改進之處或其他觀察"></textarea>
-      <div class="btns"><button class="primary" id="submitGrow" type="button">送出 360 問卷</button></div>
+      <div class="btns"><button class="primary" id="submitGrow" type="button">送出全方位評估問卷</button></div>
     </section>
 
     <section id="tab-4" class="card">
@@ -145,7 +145,42 @@
         </div>
       </div>
     </section>
+    
+    <!-- 🗓 每周問卷 -->
+    <section id="tab-6" class="card">
+      <h2>🗓 每周問卷</h2>
+      <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成下方兩題開放題：</p>
+      <table>
+        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+        <tr><td>1. 本週我能順利完成分配的任務與作業。</td>
+          <td><input type="radio" name="wk1" value="1"></td><td><input type="radio" name="wk1" value="2"></td><td><input type="radio" name="wk1" value="3"></td><td><input type="radio" name="wk1" value="4"></td><td><input type="radio" name="wk1" value="5"></td></tr>
+        <tr><td>2. 我覺得自己比上週更熟悉工作流程。</td>
+          <td><input type="radio" name="wk2" value="1"></td><td><input type="radio" name="wk2" value="2"></td><td><input type="radio" name="wk2" value="3"></td><td><input type="radio" name="wk2" value="4"></td><td><input type="radio" name="wk2" value="5"></td></tr>
+        <tr><td>3. 當工作中出現問題時，我能清楚知道解決方向。</td>
+          <td><input type="radio" name="wk3" value="1"></td><td><input type="radio" name="wk3" value="2"></td><td><input type="radio" name="wk3" value="3"></td><td><input type="radio" name="wk3" value="4"></td><td><input type="radio" name="wk3" value="5"></td></tr>
+        <tr><td>4. 本週與前輩或同事的合作互動順利。</td>
+          <td><input type="radio" name="wk4" value="1"></td><td><input type="radio" name="wk4" value="2"></td><td><input type="radio" name="wk4" value="3"></td><td><input type="radio" name="wk4" value="4"></td><td><input type="radio" name="wk4" value="5"></td></tr>
+        <tr><td>5. 我在現場觀察到新的知識或技巧，並願意主動學習。</td>
+          <td><input type="radio" name="wk5" value="1"></td><td><input type="radio" name="wk5" value="2"></td><td><input type="radio" name="wk5" value="3"></td><td><input type="radio" name="wk5" value="4"></td><td><input type="radio" name="wk5" value="5"></td></tr>
+        <tr><td>6. 我覺得自己的專注力與體力能應付目前的訓練需求。</td>
+          <td><input type="radio" name="wk6" value="1"></td><td><input type="radio" name="wk6" value="2"></td><td><input type="radio" name="wk6" value="3"></td><td><input type="radio" name="wk6" value="4"></td><td><input type="radio" name="wk6" value="5"></td></tr>
+        <tr><td>7. 我覺得目前的課程安排與實作比例適合我的學習步調。</td>
+          <td><input type="radio" name="wk7" value="1"></td><td><input type="radio" name="wk7" value="2"></td><td><input type="radio" name="wk7" value="3"></td><td><input type="radio" name="wk7" value="4"></td><td><input type="radio" name="wk7" value="5"></td></tr>
+        <tr><td>8. 培訓資訊（如時間、地點、內容）是否清楚且容易取得？</td>
+          <td><input type="radio" name="wk8" value="1"></td><td><input type="radio" name="wk8" value="2"></td><td><input type="radio" name="wk8" value="3"></td><td><input type="radio" name="wk8" value="4"></td><td><input type="radio" name="wk8" value="5"></td></tr>
+      </table>
 
+      <label>9. 請寫下本週讓你印象最深的一項學習經驗或突破。</label>
+      <textarea id="wk-open1" placeholder="請具體描述你學到了什麼、如何突破、造成影響是什麼"></textarea>
+
+      <label>10. 對下週的課程或安排，您有什麼建議或希望改進的地方？</label>
+      <textarea id="wk-open2" placeholder="請提出具體可行的建議（如調整進度、補充教材、情境演練等）"></textarea>
+
+      <div class="btns">
+        <button class="primary" id="submitWeekly" type="button">送出每周問卷</button>
+      </div>
+    </section>
+    
     <section id="tab-5" class="card">
       <h2>🛠️ 管理設定（Admin）</h2>
       <p class="muted">輸入金鑰後可編輯 GAS URL；預設已設定為你的 /exec。</p>
@@ -164,7 +199,7 @@
     </section>
   </main>
   <script>
-  const ADMIN_KEY = 'MONAADMIN2025';
+  const ADMIN_KEY = 'MONAADMIN';
   const STORAGE_KEY = 'mona_onboarding_cfg_v4';
   let profile = {
     employeeId:'', fullName:'', dept:'', date:'',
@@ -178,9 +213,10 @@
     const tabsHost = document.getElementById('tabs');
     const specs = [
       {id:'tab-0', name:'基本資訊'},
-      {id:'tab-1', name:'初期訓練'},
-      {id:'tab-2', name:'中期技能'},
-      {id:'tab-3', name:'後期360'},
+      {id:'tab-1', name:'初期訓練回饋'},
+      {id:'tab-2', name:'中期技能回饋'},
+      {id:'tab-3', name:'後期360度全方位評估'},
+      {id:'tab-6', name:'每周問卷'}
       {id:'tab-4', name:'意見反映'},
       {id:'tab-5', name:'管理設定'}
     ];
@@ -204,12 +240,12 @@
       if(i===index) sec.style.display='block'; else sec.style.display='none';
     });
     // 同步 URL hash
-    const names = ['basic','locate','skill','grow360','messages','admin'];
+    const names = ['basic','locate','skill','grow360','weekly','messages','admin'];
     const h = names[index] || 'basic';
     if(location.hash !== '#'+h) history.replaceState(null,'','#'+h);
   }
   function applyHash(){
-    const map = { basic:0, locate:1, skill:2, grow360:3, messages:4, admin:5 };
+    const map = { basic:0, locate:1, skill:2, grow360:3, weekly:4, messages:5, admin:6 };
     const key = (location.hash||'').replace('#','');
     switchTab(map[key] ?? 0);
   }
@@ -225,23 +261,23 @@
   }
 
   /* ===== Gather scores (table radios) ===== */
-  function readGroup(prefix){
-    // 讀取 loc1..loc5 / sk1..sk5 / gr1..gr5
+    function readGroup(prefix, count=5){
     const out = [];
-    for(let i=1;i<=5;i++){
+    for(let i=1;i<=count;i++){
       const r = document.querySelector(`input[name='${prefix}${i}']:checked`);
-      out.push(r? Number(r.value): null);
+      out.push(r ? Number(r.value) : null);
     }
     return out;
   }
 
-  function validate(kind){
+    function validate(kind){
     readBasic();
     if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
-    const groups = { locate:'loc', skill:'sk', grow360:'gr' };
+    const groups = { locate:'loc', skill:'sk', grow360:'gr', weekly:'wk' };
+    const counts = { locate:5, skill:5, grow360:5, weekly:8 };
     const g = groups[kind];
-    const vals = readGroup(g);
-    const miss = vals.map((v,i)=> v?null:i+1).filter(Boolean);
+    const vals = readGroup(g, counts[kind] || 5);
+    const miss = vals.map((v,i)=> (v==null)?(i+1):null).filter(Boolean);
     if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
     if(kind==='grow360'){
       const ratee = (document.getElementById('rateeId').value.trim() || profile.employeeId);
@@ -267,13 +303,13 @@
     if(!validate('locate')) return;
     const payload = { module:'locate', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('loc'), open: document.getElementById('locate-open').value.trim() };
     const btn = document.getElementById('submitLocate'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('定位問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('初期問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitSkill(){
     if(!validate('skill')) return;
     const payload = { module:'skill', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('sk'), open: document.getElementById('skill-open').value.trim(), quizScore:0, quizTotal:0 };
     const btn = document.getElementById('submitSkill'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('技能問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('中期問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitGrow(){
     if(!validate('grow360')) return;
@@ -290,7 +326,7 @@
       open: document.getElementById('grow-open').value.trim()   // ★ 加上質性欄位
     };
     const btn = document.getElementById('submitGrow'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('360 問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
+    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('全方位問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
   }
   async function submitMsg(){
     readBasic(); if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return; }
@@ -298,6 +334,33 @@
     const payload = { module:'messages', employeeId:(document.getElementById('msgAnon').value==='yes'?'匿名':profile.employeeId), fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), body };
     const btn = document.getElementById('submitMsg'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
     try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; document.getElementById('msgBody').value=''; toast('留言已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
+  }
+
+  async function submitWeekly(){
+    if(!validate('weekly')) return;
+    const payload = {
+      module:'weekly',
+      employeeId:profile.employeeId,
+      fullName:profile.fullName,
+      dept:profile.dept,
+      date:profile.date,
+      ts:Date.now(),
+      scores: readGroup('wk', 8),
+      open1: document.getElementById('wk-open1').value.trim(),
+      open2: document.getElementById('wk-open2').value.trim()
+    };
+    const btn = document.getElementById('submitWeekly'); const old=btn.textContent;
+    btn.disabled=true; btn.textContent='傳送中…';
+    try{
+      await submitToGAS(payload);
+      btn.textContent='✔ 已送出';
+      toast('每周問卷已送出');
+      switchTab(0);
+    }catch(e){
+      console.error(e);
+      btn.disabled=false; btn.textContent=old;
+      toast('送出失敗');
+    }
   }
 
   /* ===== Admin unlock & test ===== */
@@ -317,7 +380,7 @@
   /* ===== init ===== */
   function init(){
     renderTabs();
-    ['tab-1','tab-2','tab-3','tab-4','tab-5'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    ['tab-1','tab-2','tab-3','tab-4','tab-5','tab-6'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     applyHash();
     window.addEventListener('hashchange', applyHash);
 
@@ -333,6 +396,7 @@
     document.getElementById('submitMsg').addEventListener('click', submitMsg);
     document.getElementById('adminUnlock').addEventListener('click', unlockAdmin);
     document.getElementById('gasTestBtn').addEventListener('click', testGas);
+    document.getElementById('submitWeekly').addEventListener('click', submitWeekly);
   }
   init();
   </script>
