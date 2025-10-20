@@ -125,37 +125,34 @@
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
 window.toast = window.toast || (msg => alert(msg));
 
-// 以 GET 對 GAS /exec 送資料；自動處理 file:// 與更清楚的錯誤訊息
+// 不帶 origin，避免白名單擋；輸出更清楚的錯誤訊息
 async function submitToGAS(payload){
   const inputEl = document.getElementById('gas_url');
   const fromQS  = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
   const endpoint = window.GAS_ENDPOINT || fromQS || (inputEl && inputEl.value);
   if(!endpoint) throw new Error('未設定 GAS Web App URL（可在網址 ?gas=... 或 #管理設定 填入）');
 
-  // 若是 file:// 開啟，避免送出 origin='null' 被後端擋
-  const isFile = location.protocol === 'file:';
-  const originParam = isFile ? '' : ('&origin='+encodeURIComponent(location.origin));
+  const url = endpoint + '?get=1&payload='+encodeURIComponent(JSON.stringify(payload));
 
-  const url = endpoint + '?get=1' + originParam + '&payload='+encodeURIComponent(JSON.stringify(payload));
-  let res, text;
+  let res;
   try {
-    res  = await fetch(url, { method:'GET', mode:'cors', credentials:'omit' });
+    res = await fetch(url, { method:'GET' });
   } catch (e) {
-    throw new Error('無法連線到 GAS（可能網路/CORS）：' + (e.message || '連線失敗'));
+    throw new Error('無法連線到 GAS（網路/CORS）: ' + (e.message || '連線失敗'));
   }
 
-  // 嘗試解析 JSON；如果不是 JSON，回傳前 200 字當線索
+  // 嘗試解析 JSON；若不是 JSON，就把文字回應前 200 字顯示出來
+  let text;
   try {
     const data = await res.json();
-    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    if(!data.ok) throw new Error(data.error || 'GAS 回傳失敗');
     return data;
-  } catch (e) {
+  } catch {
     try {
       text = await res.text();
-      // Apps Script 若沒跑到 doGet/doPost，常回 HTML；給你前 200 字提示
-      throw new Error('GAS 非 JSON 回應（可能打到舊部署或被拒）：' + text.slice(0,200));
+      throw new Error('GAS 非 JSON 回應（可能打到舊部署或權限不足）：' + text.slice(0,200));
     } catch {
-      throw new Error('load failed');
+      throw new Error('無法解析 GAS 回應（load failed）');
     }
   }
 }
@@ -471,6 +468,21 @@ function init(){
   window.addEventListener('hashchange', applyHash);
 }
 document.addEventListener('DOMContentLoaded', init);
+
+
+  document.getElementById('gasTestBtn')?.addEventListener('click', async ()=>{
+  const endpoint = window.GAS_ENDPOINT || document.getElementById('gas_url')?.value;
+  if(!endpoint){ alert('請先設定 GAS /exec'); return; }
+  try{
+    const r = await fetch(endpoint + '?get=1');
+    const t = await r.text();
+    alert('PING 回應：\n' + t.slice(0,500));
+  }catch(e){
+    alert('PING 失敗：' + (e.message || e));
+  }
+});
+
+
 </script>
   
 </body>
