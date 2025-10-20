@@ -229,6 +229,8 @@
     btn.addEventListener('click', ()=> switchTab(i));
     tabsHost.appendChild(btn);
   });
+} // ←←← 這一個大括號是你缺少的，務必補上！
+    
 function switchTab(index){
   const specs = window.__TAB_SPECS || [];
   const tabs = document.getElementById('tabs').children;
