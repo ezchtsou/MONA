@@ -68,118 +68,39 @@
       </div>
     </section>
 
-    <section id="tab-1" class="card">
-      <h2>🩵 初期訓練問卷</h2>
-      <p>請針對以下五項指標進行評分（1分＝非常不同意，5分＝非常同意）：</p>
-      <table>
-        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-        <tr><td>1. 我清楚了解單位的運作方式與人員分工。</td><td><input type="radio" name="loc1" value="1"></td><td><input type="radio" name="loc1" value="2"></td><td><input type="radio" name="loc1" value="3"></td><td><input type="radio" name="loc1" value="4"></td><td><input type="radio" name="loc1" value="5"></td></tr>
-        <tr><td>2. 我能掌握自身工作內容的重點與流程。</td><td><input type="radio" name="loc2" value="1"></td><td><input type="radio" name="loc2" value="2"></td><td><input type="radio" name="loc2" value="3"></td><td><input type="radio" name="loc2" value="4"></td><td><input type="radio" name="loc2" value="5"></td></tr>
-        <tr><td>3. 我對目前的工作環境感到適應良好。</td><td><input type="radio" name="loc3" value="1"></td><td><input type="radio" name="loc3" value="2"></td><td><input type="radio" name="loc3" value="3"></td><td><input type="radio" name="loc3" value="4"></td><td><input type="radio" name="loc3" value="5"></td></tr>
-        <tr><td>4. 我與同事之間的互動合作順利。</td><td><input type="radio" name="loc4" value="1"></td><td><input type="radio" name="loc4" value="2"></td><td><input type="radio" name="loc4" value="3"></td><td><input type="radio" name="loc4" value="4"></td><td><input type="radio" name="loc4" value="5"></td></tr>
-        <tr><td>5. 我認為初期訓練的內容能幫助我順利進入工作狀態。</td><td><input type="radio" name="loc5" value="1"></td><td><input type="radio" name="loc5" value="2"></td><td><input type="radio" name="loc5" value="3"></td><td><input type="radio" name="loc5" value="4"></td><td><input type="radio" name="loc5" value="5"></td></tr>
-      </table>
-      <label>開放意見</label>
-      <textarea id="locate-open" placeholder="請提供其他意見或建議"></textarea>
-      <div class="btns"><button class="primary" id="submitLocate" type="button">送出初期問卷</button></div>
-    </section>
-
+   <section id="tab-1" class="card">
+  <h2>🩵 初期問卷</h2>
+  <p>請針對以下指標進行評分（1＝非常不同意，5＝非常同意）：</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出初期問卷</button></div>
+</section>
+    
     <section id="tab-2" class="card">
-      <h2>💡 中期技能課程回饋</h2>
-      <p>請評估以下學習成效（1分＝非常不同意，5分＝非常同意）：</p>
-      <table>
-        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-        <tr><td>1. 技能課程的內容能應用於實際工作。</td><td><input type="radio" name="sk1" value="1"></td><td><input type="radio" name="sk1" value="2"></td><td><input type="radio" name="sk1" value="3"></td><td><input type="radio" name="sk1" value="4"></td><td><input type="radio" name="sk1" value="5"></td></tr>
-        <tr><td>2. 教學方式能有效幫助我理解內容。</td><td><input type="radio" name="sk2" value="1"></td><td><input type="radio" name="sk2" value="2"></td><td><input type="radio" name="sk2" value="3"></td><td><input type="radio" name="sk2" value="4"></td><td><input type="radio" name="sk2" value="5"></td></tr>
-        <tr><td>3. 我能熟練操作課程中學到的技能。</td><td><input type="radio" name="sk3" value="1"></td><td><input type="radio" name="sk3" value="2"></td><td><input type="radio" name="sk3" value="3"></td><td><input type="radio" name="sk3" value="4"></td><td><input type="radio" name="sk3" value="5"></td></tr>
-        <tr><td>4. 課程時間與進度安排合理。</td><td><input type="radio" name="sk4" value="1"></td><td><input type="radio" name="sk4" value="2"></td><td><input type="radio" name="sk4" value="3"></td><td><input type="radio" name="sk4" value="4"></td><td><input type="radio" name="sk4" value="5"></td></tr>
-        <tr><td>5. 我願意推薦此課程給其他同仁。</td><td><input type="radio" name="sk5" value="1"></td><td><input type="radio" name="sk5" value="2"></td><td><input type="radio" name="sk5" value="3"></td><td><input type="radio" name="sk5" value="4"></td><td><input type="radio" name="sk5" value="5"></td></tr>
-      </table>
-      <label>開放意見</label>
-      <textarea id="skill-open" placeholder="請提供其他意見或建議"></textarea>
-      <div class="btns"><button class="primary" id="submitSkill" type="button">送出中期問卷</button></div>
-    </section>
+  <h2>💡 中期課程回饋</h2>
+  <p>請評估以下學習成效（1＝非常不同意，5＝非常同意）：</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出中期問卷</button></div>
+</section>
 
     <section id="tab-3" class="card">
-      <h2>🔶 後期360度評估</h2>
-      <div class="row" style="margin-bottom:8px">
-        <div>
-          <label>360 角色</label>
-          <select id="raterRole">
-            <option value="self">自評</option>
-            <option value="manager">直屬主管</option>
-            <option value="peer">同儕</option>
-            <option value="mentor">導師/教練</option>
-          </select>
-        </div>
-        <div>
-          <label>評估對象（employeeId）</label>
-          <input id="rateeId" type="text" placeholder="若自評可留本人 ID" />
-        </div>
-      </div>
-      <p>請針對受評者進行綜合評估（1分＝非常不同意，5分＝非常同意）：</p>
-      <table>
-        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-        <tr><td>1. 能與同事保持良好溝通與協作。</td><td><input type="radio" name="gr1" value="1"></td><td><input type="radio" name="gr1" value="2"></td><td><input type="radio" name="gr1" value="3"></td><td><input type="radio" name="gr1" value="4"></td><td><input type="radio" name="gr1" value="5"></td></tr>
-        <tr><td>2. 工作態度積極且具責任感。</td><td><input type="radio" name="gr2" value="1"></td><td><input type="radio" name="gr2" value="2"></td><td><input type="radio" name="gr2" value="3"></td><td><input type="radio" name="gr2" value="4"></td><td><input type="radio" name="gr2" value="5"></td></tr>
-        <tr><td>3. 能主動提出改善建議或解決問題。</td><td><input type="radio" name="gr3" value="1"></td><td><input type="radio" name="gr3" value="2"></td><td><input type="radio" name="gr3" value="3"></td><td><input type="radio" name="gr3" value="4"></td><td><input type="radio" name="gr3" value="5"></td></tr>
-        <tr><td>4. 在壓力下仍能維持穩定表現。</td><td><input type="radio" name="gr4" value="1"></td><td><input type="radio" name="gr4" value="2"></td><td><input type="radio" name="gr4" value="3"></td><td><input type="radio" name="gr4" value="4"></td><td><input type="radio" name="gr4" value="5"></td></tr>
-        <tr><td>5. 整體表現符合單位期望。</td><td><input type="radio" name="gr5" value="1"></td><td><input type="radio" name="gr5" value="2"></td><td><input type="radio" name="gr5" value="3"></td><td><input type="radio" name="gr5" value="4"></td><td><input type="radio" name="gr5" value="5"></td></tr>
-      </table>
-      <label>補充說明（質性意見）</label>
-      <textarea id="grow-open" placeholder="請具體描述受評者的優勢表現、待改進之處或其他觀察"></textarea>
-      <div class="btns"><button class="primary" id="submitGrow" type="button">送出全方位評估問卷</button></div>
-    </section>
+  <h2>🔶 後期全方位評估</h2>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出全方位評估</button></div>
+</section>
 
     <section id="tab-4" class="card">
-      <h2>💬 意見反映</h2>
-      <div class="row">
-        <div>
-          <label>留言內容</label>
-          <textarea id="msgBody" placeholder="遇到的困難或建議"></textarea>
-        </div>
-        <div>
-          <label>是否匿名</label>
-          <select id="msgAnon"><option value="yes">匿名</option><option value="no">署名</option></select>
-          <div class="btns"><button class="primary" id="submitMsg" type="button">送出留言</button></div>
-        </div>
-      </div>
-    </section>
+  <h2>💬 意見反映</h2>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出留言</button></div>
+</section>
     
     <!-- 🗓 每周問卷 -->
-    <section id="tab-6" class="card">
-      <h2>🗓 每周問卷</h2>
-      <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成下方兩題開放題：</p>
-      <table>
-        <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-        <tr><td>1. 本週我能順利完成分配的任務與作業。</td>
-          <td><input type="radio" name="wk1" value="1"></td><td><input type="radio" name="wk1" value="2"></td><td><input type="radio" name="wk1" value="3"></td><td><input type="radio" name="wk1" value="4"></td><td><input type="radio" name="wk1" value="5"></td></tr>
-        <tr><td>2. 我覺得自己比上週更熟悉工作流程。</td>
-          <td><input type="radio" name="wk2" value="1"></td><td><input type="radio" name="wk2" value="2"></td><td><input type="radio" name="wk2" value="3"></td><td><input type="radio" name="wk2" value="4"></td><td><input type="radio" name="wk2" value="5"></td></tr>
-        <tr><td>3. 當工作中出現問題時，我能清楚知道解決方向。</td>
-          <td><input type="radio" name="wk3" value="1"></td><td><input type="radio" name="wk3" value="2"></td><td><input type="radio" name="wk3" value="3"></td><td><input type="radio" name="wk3" value="4"></td><td><input type="radio" name="wk3" value="5"></td></tr>
-        <tr><td>4. 本週與前輩或同事的合作互動順利。</td>
-          <td><input type="radio" name="wk4" value="1"></td><td><input type="radio" name="wk4" value="2"></td><td><input type="radio" name="wk4" value="3"></td><td><input type="radio" name="wk4" value="4"></td><td><input type="radio" name="wk4" value="5"></td></tr>
-        <tr><td>5. 我在現場觀察到新的知識或技巧，並願意主動學習。</td>
-          <td><input type="radio" name="wk5" value="1"></td><td><input type="radio" name="wk5" value="2"></td><td><input type="radio" name="wk5" value="3"></td><td><input type="radio" name="wk5" value="4"></td><td><input type="radio" name="wk5" value="5"></td></tr>
-        <tr><td>6. 我覺得自己的專注力與體力能應付目前的訓練需求。</td>
-          <td><input type="radio" name="wk6" value="1"></td><td><input type="radio" name="wk6" value="2"></td><td><input type="radio" name="wk6" value="3"></td><td><input type="radio" name="wk6" value="4"></td><td><input type="radio" name="wk6" value="5"></td></tr>
-        <tr><td>7. 我覺得目前的課程安排與實作比例適合我的學習步調。</td>
-          <td><input type="radio" name="wk7" value="1"></td><td><input type="radio" name="wk7" value="2"></td><td><input type="radio" name="wk7" value="3"></td><td><input type="radio" name="wk7" value="4"></td><td><input type="radio" name="wk7" value="5"></td></tr>
-        <tr><td>8. 培訓資訊（如時間、地點、內容）是否清楚且容易取得？</td>
-          <td><input type="radio" name="wk8" value="1"></td><td><input type="radio" name="wk8" value="2"></td><td><input type="radio" name="wk8" value="3"></td><td><input type="radio" name="wk8" value="4"></td><td><input type="radio" name="wk8" value="5"></td></tr>
-      </table>
-
-      <label>9. 請寫下本週讓你印象最深的一項學習經驗或突破。</label>
-      <textarea id="wk-open1" placeholder="請具體描述你學到了什麼、如何突破、造成影響是什麼"></textarea>
-
-      <label>10. 對下週的課程或安排，您有什麼建議或希望改進的地方？</label>
-      <textarea id="wk-open2" placeholder="請提出具體可行的建議（如調整進度、補充教材、情境演練等）"></textarea>
-
-      <div class="btns">
-        <button class="primary" id="submitWeekly" type="button">送出每周問卷</button>
-      </div>
-    </section>
+   <section id="tab-6" class="card">
+  <h2>🗓 每周問卷</h2>
+  <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成開放題：</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出每周問卷</button></div>
+</section>
     
     <section id="tab-5" class="card">
       <h2>🛠️ 管理設定（Admin）</h2>
@@ -187,7 +108,7 @@
       <div class="row">
         <div>
           <label>管理金鑰</label>
-          <input id="adminKey" type="password" placeholder="輸入：MONAADMIN2025" />
+          <input id="adminKey" type="password" placeholder="輸入：MONAADMIN" />
           <div class="btns"><button id="adminUnlock" type="button">啟用編輯</button></div>
         </div>
         <div>
@@ -198,212 +119,266 @@
       </div>
     </section>
   </main>
-  <script>
-  const ADMIN_KEY = 'MONAADMIN';
-  const STORAGE_KEY = 'mona_onboarding_cfg_v4';
-  let profile = {
-    employeeId:'', fullName:'', dept:'', date:'',
-    api:{ gasUrl:'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec' }
-  };
+  
+<script>
+/***** 0) 公用保底：profile / toast / submitToGAS *****/
+window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
+window.toast = window.toast || (msg => alert(msg));
 
-  function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2200);}  
+// 你可改成自己的 POST；預設用 GET 串 GAS（支援 ?gas=... 或 #tab-5 欄位）
+async function submitToGAS(payload){
+  const inputEl = document.getElementById('gas_url');
+  const fromQS = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
+  const endpoint = window.GAS_ENDPOINT || fromQS || (inputEl && inputEl.value);
+  if(!endpoint) throw new Error('缺少 GAS Web App URL（可在網址 ?gas=...，或在 #tab-5 輸入）');
+  const url = endpoint + '?get=1&origin='+encodeURIComponent(location.origin)+'&payload='+encodeURIComponent(JSON.stringify(payload));
+  const res = await fetch(url, { method:'GET' });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
+  return data;
+}
 
-  /* ===== Tabs ===== */
- function renderTabs(){
+/***** 1) 設定：所有問卷集中在這裡 *****/
+const FORM_CONFIG = {
+  tabs: [
+    { id:'tab-0', name:'基本資訊', kind:'basic' },
+
+    { id:'tab-1', name:'初期訓練', kind:'locate', prefix:'loc',
+      likertTexts:[
+        '我清楚了解單位的運作方式與人員分工。',
+        '我能掌握自身工作內容的重點與流程。',
+        '我對目前的工作環境感到適應良好。',
+        '我與同事之間的互動合作順利。',
+        '我認為初期訓練的內容能幫助我順利進入工作狀態。'
+      ],
+      opens:['開放意見']
+    },
+
+    { id:'tab-2', name:'中期技能', kind:'skill', prefix:'sk',
+      likertTexts:[
+        '技能課程的內容能應用於實際工作。',
+        '教學方式能有效幫助我理解內容。',
+        '我能熟練操作課程中學到的技能。',
+        '課程時間與進度安排合理。',
+        '我願意推薦此課程給其他同仁。'
+      ],
+      opens:['開放意見'],
+      extras:[{key:'quizScore',label:'小測得分'},{key:'quizTotal',label:'小測滿分'}]
+    },
+
+    { id:'tab-3', name:'後期360', kind:'grow360', prefix:'gr',
+      likertTexts:[
+        '能與同事保持良好溝通與協作。',
+        '工作態度積極且具責任感。',
+        '能主動提出改善建議或解決問題。',
+        '在壓力下仍能維持穩定表現。',
+        '整體表現符合單位期望。'
+      ],
+      opens:['補充說明（質性意見）'],
+      extras:[{key:'role',label:'360 角色'},{key:'rateeId',label:'評估對象（employeeId）'}]
+    },
+
+    { id:'tab-4', name:'意見反映', kind:'messages',
+      opens:['留言內容']
+    },
+
+    { id:'tab-6', name:'每周問卷', kind:'weekly', prefix:'wk',
+      likertTexts:[
+        '本週我能順利完成分配的任務與作業。',
+        '我覺得自己比上週更熟悉工作流程。',
+        '當工作中出現問題時，我能清楚知道解決方向。',
+        '本週與前輩或同事的合作互動順利。',
+        '我在現場觀察到新的知識或技巧，並願意主動學習。',
+        '我覺得自己的專注力與體力能應付目前的訓練需求。',
+        '我覺得目前的課程安排與實作比例適合我的學習步調。',
+        '培訓資訊（如時間、地點、內容）是否清楚且容易取得？'
+      ],
+      opens:[
+        '請寫下本週讓你印象最深的一項學習經驗或突破。',
+        '對下週的課程或安排，您有什麼建議或希望改進的地方？'
+      ]
+    },
+
+    { id:'tab-5', name:'管理設定', kind:'admin' }
+  ]
+};
+
+/***** 2) 分頁 UI *****/
+function renderTabs(){
   const tabsHost = document.getElementById('tabs');
-  const specs = [
-    {id:'tab-0', name:'基本資訊'},
-    {id:'tab-1', name:'初期訓練'},
-    {id:'tab-2', name:'中期技能'},
-    {id:'tab-3', name:'後期360'},
-    {id:'tab-6', name:'每周問卷'}, // ★ 新增
-    {id:'tab-4', name:'意見反映'},
-    {id:'tab-5', name:'管理設定'}
-  ];
+  const specs = FORM_CONFIG.tabs.map(t=>({id:t.id, name:t.name}));
   window.__TAB_SPECS = specs;
   tabsHost.innerHTML = '';
-  specs.forEach((t, i)=>{
+  specs.forEach((t,i)=>{
     const btn = document.createElement('button');
     btn.className = 'tab'+(i===0?' active':'');
     btn.textContent = t.name;
     btn.addEventListener('click', ()=> switchTab(i));
     tabsHost.appendChild(btn);
   });
-} // ←←← 這一個大括號是你缺少的，務必補上！
-    
+}
 function switchTab(index){
   const specs = window.__TAB_SPECS || [];
   const tabs = document.getElementById('tabs').children;
   for(let i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', i===index);
-  specs.forEach((t, i)=>{
+  specs.forEach((t,i)=>{
     const sec = document.getElementById(t.id);
     if(!sec) return;
     sec.style.display = (i===index) ? 'block' : 'none';
   });
-  // 同步 URL hash（順序需與 specs 對齊）
-  const names = ['basic','locate','skill','grow360','weekly','messages','admin']; // ★
-  const h = names[index] || 'basic';
-  if(location.hash !== '#'+h) history.replaceState(null, '', '#'+h);
+  const names = FORM_CONFIG.tabs.map(t=>t.kind);
+  const h = names[index] || FORM_CONFIG.tabs[0].kind;
+  if(location.hash !== '#'+h) history.replaceState(null,'','#'+h);
 }
-
 function applyHash(){
-  const map = { basic:0, locate:1, skill:2, grow360:3, weekly:4, messages:5, admin:6 }; // ★
+  const names = FORM_CONFIG.tabs.map(t=>t.kind);
+  const map = Object.fromEntries(names.map((n,i)=>[n,i]));
   const key = (location.hash||'').replace('#','');
   switchTab(map[key] ?? 0);
 }
 
-  /* ===== Basic ===== */
-  function readBasic(){
-    profile.employeeId = document.getElementById('employeeId').value.trim();
-    profile.fullName = document.getElementById('fullName').value.trim();
-    profile.dept = document.getElementById('dept').value.trim();
-    const d = document.getElementById('date').value;
-    profile.date = d || new Date().toISOString().slice(0,10);
-    document.getElementById('userIdBadge').textContent = profile.employeeId || '未設定';
-  }
+/***** 3) 自動渲染所有問卷 *****/
+function renderAllForms(){
+  FORM_CONFIG.tabs.forEach(tab=>{
+    if(['basic','admin'].includes(tab.kind)) return; // 非問卷頁略過
+    const sec = document.getElementById(tab.id);
+    if(!sec) return;
 
-  /* ===== Gather scores (table radios) ===== */
-    function readGroup(prefix, count=5){
-    const out = [];
-    for(let i=1;i<=count;i++){
-      const r = document.querySelector(`input[name='${prefix}${i}']:checked`);
-      out.push(r ? Number(r.value) : null);
+    let html = '';
+    if (tab.kind === 'messages') {
+      const label = (tab.opens && tab.opens[0]) || '請輸入意見';
+      html = `
+        <label>${label}</label>
+        <textarea id="${tab.id}-open-0" placeholder="請填寫"></textarea>
+      `;
+    } else {
+      if (Array.isArray(tab.likertTexts)) {
+        const rows = tab.likertTexts.map((text,i)=>{
+          const n=i+1, name=`${tab.prefix}${n}`;
+          const radios=[1,2,3,4,5].map(v=>`<td><input type="radio" name="${name}" value="${v}"></td>`).join('');
+          return `<tr><td>${n}. ${text}</td>${radios}</tr>`;
+        }).join('');
+        html += `
+          <table>
+            <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+            ${rows}
+          </table>`;
+      }
+      if (Array.isArray(tab.opens)) {
+        html += tab.opens.map((t,i)=>`
+          <label>${t}</label>
+          <textarea id="${tab.id}-open-${i}" placeholder="請填寫"></textarea>
+        `).join('');
+      }
+      if (Array.isArray(tab.extras)) {
+        html += tab.extras.map(ex=>`
+          <label>${ex.label}</label>
+          <input id="${tab.id}-extra-${ex.key}" type="text" placeholder="${ex.label}">
+        `).join('');
+      }
     }
-    return out;
-  }
+    let host = sec.querySelector('.form-host');
+    if(!host){ host = document.createElement('div'); host.className='form-host'; const btns=sec.querySelector('.btns'); sec.insertBefore(host, btns||null); }
+    host.innerHTML = html;
 
-    function validate(kind){
-    readBasic();
-    if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
-    const groups = { locate:'loc', skill:'sk', grow360:'gr', weekly:'wk' };
-    const counts = { locate:5, skill:5, grow360:5, weekly:8 };
-    const g = groups[kind];
-    const vals = readGroup(g, counts[kind] || 5);
-    const miss = vals.map((v,i)=> (v==null)?(i+1):null).filter(Boolean);
-    if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
-    if(kind==='grow360'){
-      const ratee = (document.getElementById('rateeId').value.trim() || profile.employeeId);
-      if(!ratee){ toast('請填寫評估對象 employeeId'); return false; }
-    }
-    return true;
-  }
-
-  /* ===== GAS ===== */
-  function isLikelyGas(url){ return /^https:\/\/script\.google\.com\/macros\/s\//.test(url) && /\/exec(\?|$)/.test(url); }
-  async function submitToGAS(payload){
-    const gas = (document.getElementById('gas_url')?.value || profile.api.gasUrl || '').trim();
-    if(!isLikelyGas(gas)) throw new Error('GAS URL 格式錯誤');
-    const res = await fetch(gas + '?origin=' + encodeURIComponent(location.origin), {
-      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload)
-    });
-    if(!res.ok) throw new Error('GAS 回應非 200');
-    return true;
-  }
-
-  /* ===== Submit handlers ===== */
-  async function submitLocate(){
-    if(!validate('locate')) return;
-    const payload = { module:'locate', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('loc'), open: document.getElementById('locate-open').value.trim() };
-    const btn = document.getElementById('submitLocate'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('初期問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
-  }
-  async function submitSkill(){
-    if(!validate('skill')) return;
-    const payload = { module:'skill', employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), scores: readGroup('sk'), open: document.getElementById('skill-open').value.trim(), quizScore:0, quizTotal:0 };
-    const btn = document.getElementById('submitSkill'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('中期問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
-  }
-  async function submitGrow(){
-    if(!validate('grow360')) return;
-    const payload = {
-      module:'grow360',
-      employeeId:profile.employeeId,
-      fullName:profile.fullName,
-      dept:profile.dept,
-      date:profile.date,
-      ts:Date.now(),
-      scores: readGroup('gr'),
-      role: document.getElementById('raterRole').value,
-      rateeId: (document.getElementById('rateeId').value.trim() || profile.employeeId),
-      open: document.getElementById('grow-open').value.trim()   // ★ 加上質性欄位
-    };
-    const btn = document.getElementById('submitGrow'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; toast('全方位問卷已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
-  }
-  async function submitMsg(){
-    readBasic(); if(!profile.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return; }
-    const body = document.getElementById('msgBody').value.trim(); if(!body){ toast('請輸入留言內容'); return; }
-    const payload = { module:'messages', employeeId:(document.getElementById('msgAnon').value==='yes'?'匿名':profile.employeeId), fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now(), body };
-    const btn = document.getElementById('submitMsg'); const old=btn.textContent; btn.disabled=true; btn.textContent='傳送中…';
-    try{ await submitToGAS(payload); btn.textContent='✔ 已送出'; document.getElementById('msgBody').value=''; toast('留言已送出'); switchTab(0); }catch(e){ console.error(e); btn.disabled=false; btn.textContent=old; toast('送出失敗'); }
-  }
-
-  async function submitWeekly(){
-    if(!validate('weekly')) return;
-    const payload = {
-      module:'weekly',
-      employeeId:profile.employeeId,
-      fullName:profile.fullName,
-      dept:profile.dept,
-      date:profile.date,
-      ts:Date.now(),
-      scores: readGroup('wk', 8),
-      open1: document.getElementById('wk-open1').value.trim(),
-      open2: document.getElementById('wk-open2').value.trim()
-    };
-    const btn = document.getElementById('submitWeekly'); const old=btn.textContent;
-    btn.disabled=true; btn.textContent='傳送中…';
-    try{
-      await submitToGAS(payload);
-      btn.textContent='✔ 已送出';
-      toast('每周問卷已送出');
-      switchTab(0);
-    }catch(e){
-      console.error(e);
-      btn.disabled=false; btn.textContent=old;
-      toast('送出失敗');
-    }
-  }
-
-  /* ===== Admin unlock & test ===== */
-  function unlockAdmin(){
-    const key = document.getElementById('adminKey').value.trim();
-    if(key!==ADMIN_KEY) return toast('金鑰錯誤');
-    const input = document.getElementById('gas_url');
-    input.removeAttribute('readonly');
-    toast('已解鎖 GAS URL 可編輯');
-  }
-  async function testGas(){
-    const url = document.getElementById('gas_url').value.trim();
-    if(!isLikelyGas(url)) return toast('GAS URL 格式錯誤');
-    try{ const r = await fetch(url,{method:'GET'}); toast(r.ok?'PING OK':'PING 失敗'); }catch(_){ toast('PING 失敗'); }
-  }
-
-  /* ===== init ===== */
-  function init(){
-  renderTabs();
-  ['tab-1','tab-2','tab-3','tab-4','tab-5','tab-6'].forEach(id=>{ // ★
-    const el = document.getElementById(id);
-    if(el) el.style.display='none';
+    // 綁定送出按鈕
+    const btn = sec.querySelector('.btns .primary');
+    if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }
   });
+}
+
+/***** 4) 讀值/驗證/打包 *****/
+function readLikert(prefix, count){
+  const out = [];
+  for(let i=1;i<=count;i++){
+    const r = document.querySelector(`input[name='${prefix}${i}']:checked`);
+    out.push(r ? Number(r.value) : null);
+  }
+  return out;
+}
+function buildPayload(tab){
+  const base = {
+    module: tab.kind,
+    employeeId: profile.employeeId,
+    fullName:   profile.fullName,
+    dept:       profile.dept,
+    date:       profile.date,
+    ts:         Date.now()
+  };
+  if (tab.kind === 'messages') {
+    const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
+    return { ...base, body };
+  }
+  const scores = Array.isArray(tab.likertTexts) ? readLikert(tab.prefix, tab.likertTexts.length) : [];
+  const opens  = Array.isArray(tab.opens) ? tab.opens.map((_,i)=> (document.getElementById(`${tab.id}-open-${i}`)?.value||'').trim()) : [];
+  const extras = {};
+  if (Array.isArray(tab.extras)) {
+    tab.extras.forEach(ex=>{
+      const v = document.getElementById(`${tab.id}-extra-${ex.key}`)?.value || '';
+      extras[ex.key] = v.trim();
+    });
+  }
+  return { ...base, scores, opens, extras };
+}
+function validateTab(tab){
+  if (typeof readBasic === 'function') readBasic();
+  if(!profile?.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
+  if (tab.kind === 'messages') {
+    const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
+    if(!body){ toast('請輸入意見內容'); return false; }
+    return true;
+  }
+  if (Array.isArray(tab.likertTexts)) {
+    const vals = readLikert(tab.prefix, tab.likertTexts.length);
+    const miss = vals.map((v,i)=> v==null ? (i+1) : null).filter(Boolean);
+    if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
+  }
+  return true;
+}
+async function submitByKind(kind){
+  const tab = FORM_CONFIG.tabs.find(t=> t.kind===kind);
+  if(!tab) return;
+  if(!validateTab(tab)) return;
+  const payload = buildPayload(tab);
+  const btn = document.querySelector(`#${tab.id} .btns .primary`);
+  const old = btn?.textContent;
+  if(btn){ btn.disabled=true; btn.textContent='傳送中…'; }
+  try{
+    await submitToGAS(payload);
+    if(btn){ btn.textContent='✔ 已送出'; }
+    toast(`${tab.name} 已送出`);
+    switchTab(0);
+  }catch(e){
+    console.error(e);
+    if(btn){ btn.disabled=false; btn.textContent=old; }
+    toast('送出失敗：'+e.message);
+  }
+}
+
+/***** 5) 基本資訊輔助（可用你的原版覆蓋） *****/
+function readBasic(){
+  profile.employeeId = document.getElementById('employeeId')?.value?.trim() || profile.employeeId;
+  profile.fullName   = document.getElementById('fullName')?.value?.trim()   || profile.fullName;
+  profile.dept       = document.getElementById('dept')?.value?.trim()       || profile.dept;
+  profile.date       = document.getElementById('date')?.value               || profile.date;
+  const badge = document.getElementById('userIdBadge'); if(badge) badge.textContent = profile.employeeId || '未設定';
+}
+document.getElementById('fillToday')?.addEventListener('click', ()=>{
+  const el = document.getElementById('date');
+  if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
+});
+
+/***** 6) 初始化 *****/
+function init(){
+  renderTabs();
+  // 先隱藏除第 1 頁以外的分頁
+  FORM_CONFIG.tabs.slice(1).forEach(t=>{ const el=document.getElementById(t.id); if(el) el.style.display='none'; });
+  renderAllForms();
   applyHash();
   window.addEventListener('hashchange', applyHash);
-
-    const today = new Date().toISOString().slice(0,10);
-    document.getElementById('date').value = today;
-    document.getElementById('fillToday').addEventListener('click', ()=>{ document.getElementById('date').value = new Date().toISOString().slice(0,10); readBasic(); });
-    ['employeeId','fullName','dept','date'].forEach(id=> document.getElementById(id).addEventListener('input', readBasic));
-    readBasic();
-
-    document.getElementById('submitLocate').addEventListener('click', submitLocate);
-    document.getElementById('submitSkill').addEventListener('click', submitSkill);
-    document.getElementById('submitGrow').addEventListener('click', submitGrow);
-    document.getElementById('submitMsg').addEventListener('click', submitMsg);
-    document.getElementById('adminUnlock').addEventListener('click', unlockAdmin);
-    document.getElementById('gasTestBtn').addEventListener('click', testGas);
-    document.getElementById('submitWeekly').addEventListener('click', submitWeekly);
-  }
-  init();
-  </script>
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+  
 </body>
 </html>
