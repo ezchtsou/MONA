@@ -68,6 +68,14 @@
       </div>
     </section>
 
+<!-- 🗓 每周問卷 -->
+   <section id="tab-6" class="card">
+  <h2>🗓 每周問卷</h2>
+  <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成開放題：</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出每周問卷</button></div>
+</section>
+    
    <section id="tab-1" class="card">
   <h2>🩵 初期問卷</h2>
   <p>請針對以下指標進行評分（1＝非常不同意，5＝非常同意）：</p>
@@ -92,14 +100,6 @@
   <h2>💬 意見反映</h2>
   <div class="form-host"></div>
   <div class="btns"><button class="primary" type="button">送出留言</button></div>
-</section>
-    
-    <!-- 🗓 每周問卷 -->
-   <section id="tab-6" class="card">
-  <h2>🗓 每周問卷</h2>
-  <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成開放題：</p>
-  <div class="form-host"></div>
-  <div class="btns"><button class="primary" type="button">送出每周問卷</button></div>
 </section>
     
     <section id="tab-5" class="card">
@@ -159,12 +159,28 @@ async function submitToGAS(payload){
   }
 }
 
-
 /***** 1) 設定：所有問卷集中在這裡 *****/
 const FORM_CONFIG = {
   tabs: [
     { id:'tab-0', name:'基本資訊', kind:'basic' },
 
+    { id:'tab-6', name:'每周問卷', kind:'weekly', prefix:'wk',
+      likertTexts:[
+        '本週我能順利完成分配的任務與作業。',
+        '我覺得自己比上週更熟悉工作流程。',
+        '當工作中出現問題時，我能清楚知道解決方向。',
+        '本週與前輩或同事的合作互動順利。',
+        '我在現場觀察到新的知識或技巧，並願意主動學習。',
+        '我覺得自己的專注力與體力能應付目前的訓練需求。',
+        '我覺得目前的課程安排與實作比例適合我的學習步調。',
+        '培訓資訊（如時間、地點、內容）是否清楚且容易取得？'
+      ],
+      opens:[
+        '請寫下本週讓你印象最深的一項學習經驗或突破。',
+        '對下週的課程或安排，您有什麼建議或希望改進的地方？'
+      ]
+    },
+    
     { id:'tab-1', name:'初期訓練', kind:'locate', prefix:'loc',
       likertTexts:[
         '我清楚知道蒸飯箱、微波爐、洗碗槽等設施的位置與使用規範。',
@@ -220,7 +236,7 @@ const FORM_CONFIG = {
     '這名員工具備良好的問題解決與判斷能力。',
     '我對這名員工做出正確決策的能力有信心。',
     '這名員工對工作環境的影響是正面的。',
-    '您向其他同事推薦這名員工的可能性有多大？（1＝絕不推薦，5＝非常推薦。',
+    '您向其他同事推薦這名員工的可能性有多大？（1＝絕不推薦，5＝非常推薦。）',
   ],
   opens:['請列出這名員工表現最優秀的三個面向。','請列出這名員工最需要改進的三個部分或建議其成長方向。'],
   extras:[
@@ -239,23 +255,6 @@ const FORM_CONFIG = {
 
     { id:'tab-4', name:'意見反映', kind:'messages',
       opens:['留言內容']
-    },
-
-    { id:'tab-6', name:'每周問卷', kind:'weekly', prefix:'wk',
-      likertTexts:[
-        '本週我能順利完成分配的任務與作業。',
-        '我覺得自己比上週更熟悉工作流程。',
-        '當工作中出現問題時，我能清楚知道解決方向。',
-        '本週與前輩或同事的合作互動順利。',
-        '我在現場觀察到新的知識或技巧，並願意主動學習。',
-        '我覺得自己的專注力與體力能應付目前的訓練需求。',
-        '我覺得目前的課程安排與實作比例適合我的學習步調。',
-        '培訓資訊（如時間、地點、內容）是否清楚且容易取得？'
-      ],
-      opens:[
-        '請寫下本週讓你印象最深的一項學習經驗或突破。',
-        '對下週的課程或安排，您有什麼建議或希望改進的地方？'
-      ]
     },
 
     { id:'tab-5', name:'管理設定', kind:'admin' }
