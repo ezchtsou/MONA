@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>新進員工訓練回饋系統 | MONA Onboarding Feedback</title>
+  <title>新進員工訓練回饋系統</title>
   <style>
     :root{--bg:#f8fafc;--card:#ffffff;--text:#1f2937;--muted:#6b7280;--brand:#0ea5e9;--active:#dbeafe;--danger:#fecaca}
     *{box-sizing:border-box}
@@ -118,9 +118,43 @@
         </div>
       </div>
     </section>
+
+    <section id="tab-7" class="card">
+  <h2>📘 課堂問卷 <span id="courseHeader" class="muted"></span></h2>
+  <p class="muted">請以五點量表作答（1＝非常不同意，5＝非常同意）。</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出課堂問卷</button></div>
+</section>
+    
   </main>
   
 <script>
+
+function getQuery(){ try { return Object.fromEntries(new URL(location.href).searchParams.entries()); } catch { return {}; } }
+
+function applyCourseFromQuery(){
+  const q = getQuery();
+  // 支援 ?module=course&id=E102&title=列車制動
+  if ((q.module||'').toLowerCase() !== 'course') return;
+
+  // 存到全域，給送出打包
+  window.__COURSE__ = {
+    id: q.courseId || q.id || '',
+    title: q.title || ''
+  };
+
+  // 顯示在頁面標題上
+  const hdr = document.getElementById('courseHeader');
+  if (hdr){
+    const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
+    hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
+  }
+
+  // 自動切到課堂問卷分頁（找出 course tab 的索引）
+  const idx = (FORM_CONFIG.tabs || []).findIndex(t=> t.kind==='course');
+  if (idx >= 0) switchTab(idx);
+}
+
 /***** 0) 公用保底：profile / toast / submitToGAS *****/
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
 window.toast = window.toast || (msg => alert(msg));
@@ -257,7 +291,15 @@ const FORM_CONFIG = {
       opens:['留言內容']
     },
 
-    { id:'tab-5', name:'管理設定', kind:'admin' }
+    { id:'tab-5', name:'管理設定', kind:'admin' },
+
+    { id:'tab-7', name:'課堂問卷', kind:'course', prefix:'cq',
+  likertTexts:[
+    '這堂訓練課程對我的工作能力有幫助。',
+    '講師表現良好，對課程內容熟悉且表達清晰。',
+    '我能掌握訓練課程的內容。'
+  ],
+},
   ]
 };
 
@@ -404,6 +446,12 @@ function buildPayload(tab){
     if (!extras.rateeId && profile?.employeeId) extras.rateeId = profile.employeeId;
   }
 
+if (tab.kind === 'course') {
+  const c = window.__COURSE__ || {};
+  extras.courseId    = extras.courseId    || c.id || '';
+  extras.courseTitle = extras.courseTitle || c.title || '';
+}
+  
   return { ...base, scores, opens, extras };
 }
 
@@ -487,28 +535,44 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
 
 /***** 6) 初始化 *****/
 function init(){
+  // 1) 生成分頁按鈕
   renderTabs();
-  // 先隱藏除第 1 頁以外的分頁
-  FORM_CONFIG.tabs.slice(1).forEach(t=>{ const el=document.getElementById(t.id); if(el) el.style.display='none'; });
+
+  // 2) 先隱藏除第 1 頁以外的分頁
+  FORM_CONFIG.tabs.slice(1).forEach(t=>{
+    const el = document.getElementById(t.id);
+    if (el) el.style.display = 'none';
+  });
+
+  // 3) 根據 FORM_CONFIG 自動渲染所有問卷
   renderAllForms();
+
+  // 4) hash 導航
   applyHash();
   window.addEventListener('hashchange', applyHash);
-}
-document.addEventListener('DOMContentLoaded', init);
 
+  // 5) ★ 課堂問卷：讀取 URL 參數（module=course&id=...&title=...），自動切到課堂問卷並顯示課名
+  applyCourseFromQuery();
 
-  document.getElementById('gasTestBtn')?.addEventListener('click', async ()=>{
-  const endpoint = window.GAS_ENDPOINT || document.getElementById('gas_url')?.value;
-  if(!endpoint){ alert('請先設定 GAS /exec'); return; }
-  try{
-    const r = await fetch(endpoint + '?get=1');
-    const t = await r.text();
-    alert('PING 回應：\n' + t.slice(0,500));
-  }catch(e){
-    alert('PING 失敗：' + (e.message || e));
+  // 6) ★ 在 DOM 準備好後，再綁定「測試連線」按鈕
+  const pingBtn = document.getElementById('gasTestBtn');
+  if (pingBtn) {
+    pingBtn.addEventListener('click', async ()=>{
+      const endpoint = window.GAS_ENDPOINT || document.getElementById('gas_url')?.value;
+      if(!endpoint){ alert('請先設定 GAS /exec'); return; }
+      try{
+        const r = await fetch(endpoint + '?get=1');
+        const t = await r.text();
+        alert('PING 回應：\n' + t.slice(0,500));
+      }catch(e){
+        alert('PING 失敗：' + (e.message || e));
+      }
+    });
   }
-});
+}
 
+// 只綁一次
+document.addEventListener('DOMContentLoaded', init);
 
 </script>
   
