@@ -611,13 +611,13 @@ async function loadCourseListForMakeup(){
   }
 }
 
-// 在 init() 最後面已經呼叫了 applyCourseFromQuery()，再加上：
-document.addEventListener('DOMContentLoaded', ()=>{
-  // ...你的原本 init()...
-  loadCourseListForMakeup();
+document.addEventListener('DOMContentLoaded', () => {
+  init();                 // ← 必須先跑，會 renderTabs()、隱藏其他分頁、綁事件等
+  loadCourseListForMakeup(); // 補登課程選單再載
 });
 
 </script>
   
 </body>
 </html>
+
