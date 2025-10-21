@@ -119,8 +119,14 @@
       </div>
     </section>
 
-    <section id="tab-7" class="card">
+   <section id="tab-7" class="card">
   <h2>📘 課堂問卷 <span id="courseHeader" class="muted"></span></h2>
+  <div id="coursePicker" class="row" style="margin-bottom:12px; display:none">
+    <div>
+      <label>選擇課程（補填）</label>
+      <select id="courseSelect"><option value="">請選擇課程</option></select>
+    </div>
+  </div>
   <p class="muted">請以五點量表作答（1＝非常不同意，5＝非常同意）。</p>
   <div class="form-host"></div>
   <div class="btns"><button class="primary" type="button">送出課堂問卷</button></div>
@@ -516,7 +522,7 @@ async function submitByKind(kind){
     }
   }
 }
-
+   
   }
 }
 
@@ -570,9 +576,46 @@ function init(){
     });
   }
 }
+async function loadCourseListForMakeup(){
+  // 若 URL 已帶 id/title 就不用顯示補登選單
+  const q = getQuery();
+  if ((q.module||'').toLowerCase() === 'course' && (q.id || q.title)) return;
 
-// 只綁一次
-document.addEventListener('DOMContentLoaded', init);
+  // 顯示補登選單
+  const picker = document.getElementById('coursePicker');
+  if (picker) picker.style.display = 'grid';
+
+  const endpoint = (window.GAS_ENDPOINT || document.getElementById('gas_url')?.value);
+  if (!endpoint) return; // 沒設定 GAS 也就不載
+
+  try{
+    const r = await fetch(endpoint + '?action=courselist');
+    const data = await r.json();
+    const sel = document.getElementById('courseSelect');
+    if (sel && data?.ok && Array.isArray(data.items)){
+      sel.innerHTML = '<option value="">請選擇課程</option>' + 
+        data.items.map(it => `<option value="${encodeURIComponent(it.id)}|${encodeURIComponent(it.title)}">${it.id}｜${it.title}${it.instructor? '（'+it.instructor+'）':''}</option>`).join('');
+      sel.onchange = ()=>{
+        const v = sel.value;
+        if (!v) return;
+        const [idEnc, titleEnc] = v.split('|');
+        const id = decodeURIComponent(idEnc);
+        const title = decodeURIComponent(titleEnc);
+        window.__COURSE__ = { id, title };                      // 設定補登選的課
+        const hdr = document.getElementById('courseHeader');
+        if (hdr) hdr.textContent = `（${id}｜${title}）`;
+      };
+    }
+  }catch(e){
+    console.warn('載入課程清單失敗', e);
+  }
+}
+
+// 在 init() 最後面已經呼叫了 applyCourseFromQuery()，再加上：
+document.addEventListener('DOMContentLoaded', ()=>{
+  // ...你的原本 init()...
+  loadCourseListForMakeup();
+});
 
 </script>
   
