@@ -174,13 +174,18 @@ function setEndpoint(url){
 }
 function getEndpoint({ requireUnlocked = false } = {}){
   const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
-  let ep = sessionStorage.getItem('gas_endpoint') || window.GAS_ENDPOINT || '';
+
+  // 1) 先讀 URL ?gas=（允許未解鎖，僅作為執行用，不顯示在 UI）
+  const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
+  let ep = qs ? decodeURIComponent(qs) : '';
+
+  // 2) 其次讀 sessionStorage / 全域 / 輸入框（輸入框只在已解鎖可用）
+  if (!ep) ep = sessionStorage.getItem('gas_endpoint') || window.GAS_ENDPOINT || '';
   const viaInput = document.getElementById('gas_url')?.value?.trim();
   if (viaInput) ep = viaInput;
-  const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
-  if (unlocked && qs) ep = decodeURIComponent(qs);
+
   if (requireUnlocked && !unlocked) throw new Error('尚未解鎖管理金鑰');
-  return ep || '';
+  return (ep || '').trim();
 }
 
 /* =========================================================
