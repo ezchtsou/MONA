@@ -211,6 +211,16 @@ const FORM_CONFIG = {
   tabs: [
     { id:'tab-0', name:'基本資訊', kind:'basic' },
 
+ { id:'tab-7', name:'課堂問卷', kind:'course', prefix:'cq',
+  likertTexts:[
+    '我在這堂訓練課程學習到新的觀念與技巧。',
+    '訓練講師具備專業知能與技術，且表達良好。',
+    '我對於課程非常滿意。'
+  ],
+     opens:[
+    '請寫下本堂課讓你最有收穫的一點（或建議改進之處）。']
+},
+    
     { id:'tab-6', name:'每周問卷', kind:'weekly', prefix:'wk',
       likertTexts:[
         '本週我能順利完成分配的任務與作業。',
@@ -305,16 +315,6 @@ const FORM_CONFIG = {
     },
 
     { id:'tab-5', name:'管理設定', kind:'admin' },
-
-    { id:'tab-7', name:'課堂問卷', kind:'course', prefix:'cq',
-  likertTexts:[
-    '我在這堂訓練課程學習到新的觀念與技巧。',
-    '訓練講師具備專業知能與技術，且表達良好。',
-    '我對於課程非常滿意。'
-  ],
-     opens:[
-    '請寫下本堂課讓你最有收穫的一點（或建議改進之處）。']
-},
   ]
 };
 
