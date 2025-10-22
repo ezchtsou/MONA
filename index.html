@@ -117,24 +117,31 @@
     
     <section id="tab-5" class="card">
   <h2>🛠️ 管理設定（Admin）</h2>
-  <p class="muted">輸入管理金鑰後即可編輯與測試 GAS Web App URL。</p>
+  <p class="muted">輸入管理金鑰後才會顯示並啟用 GAS Web App 設定。</p>
 
   <div class="row">
     <div>
       <label>管理金鑰</label>
       <input id="adminKey" type="password" placeholder="請輸入金鑰" />
       <div class="btns">
-        <button id="adminUnlock" type="button">啟用編輯</button>
+        <button id="adminUnlock" type="button">啟用管理</button>
       </div>
     </div>
+  </div>
 
-    <div>
-      <label>GAS Web App URL（/exec）</label>
-      <input id="gas_url" type="text" readonly />
-      <div class="btns">
-        <button id="gasTestBtn" type="button">測試連線（PING）</button>
+  <!-- ↓↓↓ 解鎖後才會顯示 ↓↓↓ -->
+  <div id="adminPanel" style="display:none">
+    <div class="row">
+      <div>
+        <label>GAS Web App URL（/exec）</label>
+        <input id="gas_url" type="text" readonly />
+        <div class="btns">
+          <button id="gasTestBtn" type="button">測試連線（PING）</button>
+        </div>
       </div>
     </div>
+    <!-- 之後的匿名圖表會放在這個面板下 -->
+    <!-- <section id="adminCharts" class="card" style="display:none"> ... </section> -->
   </div>
 </section>
     
@@ -146,36 +153,28 @@ function getQuery(){ try { return Object.fromEntries(new URL(location.href).sear
 
 function applyCourseFromQuery(){
   const q = getQuery();
-  // 支援 ?module=course&id=E102&title=列車制動
   if ((q.module||'').toLowerCase() !== 'course') return;
 
-  // 存到全域，給送出打包
   window.__COURSE__ = {
     id: q.courseId || q.id || '',
     title: q.title || ''
   };
 
-  // 顯示在頁面標題上
-  if (hdr){
-    const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
-    hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
-  }
-
-  // ★ 若 URL 已有預選課程 → 隱藏補登選單
-  const picker = document.getElementById('coursePicker');
-  if (picker && (window.__COURSE__?.id || window.__COURSE__?.title)) {
-    picker.style.display = 'none';
-  }
   const hdr = document.getElementById('courseHeader');
   if (hdr){
     const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
     hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
   }
 
-  // 自動切到課堂問卷分頁（找出 course tab 的索引）
+  const picker = document.getElementById('coursePicker');
+  if (picker && (window.__COURSE__?.id || window.__COURSE__?.title)) {
+    picker.style.display = 'none';
+  }
+
   const idx = (FORM_CONFIG.tabs || []).findIndex(t=> t.kind==='course');
   if (idx >= 0) switchTab(idx);
 }
+
 
 /***** 0) 公用保底：profile / toast / submitToGAS *****/
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
@@ -183,37 +182,29 @@ window.toast = window.toast || (msg => alert(msg));
 
 // 用 POST 提交，不設 Content-Type（避免 CORS 預檢），並提供更清楚的錯誤
 async function submitToGAS(payload){
-  const inputEl = document.getElementById('gas_url');
-  const fromQS  = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
-  const endpoint = window.GAS_ENDPOINT || fromQS || (inputEl && inputEl.value);
-  if(!endpoint) throw new Error('未設定 GAS Web App URL（可在網址 ?gas=... 或 #管理設定 填入）');
+  let endpoint = getEndpoint({ requireUnlocked: false });
+  if (!endpoint) throw new Error('尚未設定 GAS Web App URL（請到管理設定輸入金鑰並設定 /exec）');
 
   let res;
   try {
-    // 不設 headers，瀏覽器會用 text/plain 送出 → 不會觸發預檢
-    res = await fetch(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    res = await fetch(endpoint, { method: 'POST', body: JSON.stringify(payload) });
   } catch (e) {
     throw new Error('無法連線到 GAS（網路/CORS）：' + (e.message || '連線失敗'));
   }
 
-  // 先拿文字來觀察，再嘗試解析 JSON（避免因 CORS/opaque 直接丟失細節）
   let text;
-  try {
-    text = await res.text();
-  } catch (e) {
-    throw new Error('無法解析 GAS 回應（read body 失敗）');
-  }
+  try { text = await res.text(); }
+  catch { throw new Error('無法解析 GAS 回應（read body 失敗）'); }
+
   try {
     const data = JSON.parse(text);
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     return data;
-  } catch (e) {
+  } catch {
     throw new Error('GAS 非 JSON 回應（可能是舊部署/權限/白名單）：' + String(text).slice(0,200));
   }
 }
+
 
 /***** 1) 設定：所有問卷集中在這裡 *****/
 const FORM_CONFIG = {
@@ -595,83 +586,116 @@ function init(){
   }
 }
 
-// ★ 新增：管理金鑰驗證與解鎖
-// === 管理金鑰 & 預設 URL（你可以改這兩行） ===
-const ADMIN_SECRET     = 'MONAADMIN'; // ← 換密碼就改這行
-const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec'; // ← 你的 /exec
+// === 管理金鑰 & 預設 URL（依需要修改） ===
+const ADMIN_SECRET     = 'ADMIN'; // ← 換密碼改這行
+const DEFAULT_GAS_URL  = '';      // 不預設外露；解鎖後可貼上 /exec
 
-// === 綁定「啟用編輯」邏輯：解鎖後才顯示/可編輯 GAS URL ===
-function bindAdminUnlock() {
-  const unlockBtn = document.getElementById('adminUnlock');
-  const keyInput  = document.getElementById('adminKey');
-  const gasInput  = document.getElementById('gas_url');
-  if (!unlockBtn || !keyInput || !gasInput) return;
+// === 端點單一資料來源（所有功能都用這兩個） ===
+function setEndpoint(url){
+  window.GAS_ENDPOINT = (url || '').trim();
+  if (window.GAS_ENDPOINT) sessionStorage.setItem('gas_endpoint', window.GAS_ENDPOINT);
+}
+function getEndpoint({ requireUnlocked = false } = {}){
+  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
 
-  // 預設先隱藏內容（不影響 placeholder）
-  gasInput.value = '';               // 清空顯示
-  gasInput.setAttribute('readonly', ''); // 保持唯讀
+  // 先取記憶的，再看當前欄位值，再看全域
+  let ep = sessionStorage.getItem('gas_endpoint') || window.GAS_ENDPOINT || '';
+  const viaInput = document.getElementById('gas_url')?.value?.trim();
+  if (viaInput) ep = viaInput;
 
-  // 若本次瀏覽已解鎖過（sessionStorage），自動顯示與解鎖
-  if (sessionStorage.getItem('admin_unlocked') === '1') {
-    gasInput.removeAttribute('readonly');
-    gasInput.value = DEFAULT_GAS_URL;
-  }
+  // 僅在已解鎖時，允許用 ?gas= 覆蓋
+  const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
+  if (unlocked && qs) ep = decodeURIComponent(qs);
 
-  unlockBtn.addEventListener('click', () => {
-    const key = (keyInput.value || '').trim();
-    if (key !== ADMIN_SECRET) {
-      alert('金鑰錯誤');
-      return;
-    }
-    gasInput.removeAttribute('readonly');
-    if (!gasInput.value) gasInput.value = DEFAULT_GAS_URL; // 解鎖後才填入
-    sessionStorage.setItem('admin_unlocked', '1');
-    alert('已解鎖，可編輯 GAS URL');
-  });
+  if (requireUnlocked && !unlocked) throw new Error('尚未解鎖管理金鑰');
+  if (!ep) return ''; // 可能還沒設定
+  return ep;
 }
 
+function bindAdminUnlock(){
+  const unlockBtn  = document.getElementById('adminUnlock');
+  const keyInput   = document.getElementById('adminKey');
+  const adminPanel = document.getElementById('adminPanel');
+  const gasInput   = document.getElementById('gas_url');
+  if (!unlockBtn || !keyInput || !adminPanel || !gasInput) return;
 
-// 在 init() 執行後呼叫
-document.addEventListener('DOMContentLoaded', () => {
-  init();
-  loadCourseListForMakeup();
-  bindAdminUnlock(); // ★ 加上這行
-});
+  // 預設隱藏面板、清空 URL、設唯讀
+  adminPanel.style.display = 'none';
+  gasInput.value = '';
+  gasInput.setAttribute('readonly','');
 
+  // 回復先前解鎖狀態（同一分頁/同一 session）
+  const wasUnlocked = sessionStorage.getItem('admin_unlocked') === '1';
+  const remembered  = sessionStorage.getItem('gas_endpoint') || DEFAULT_GAS_URL || '';
+  if (wasUnlocked) {
+    adminPanel.style.display = 'block';
+    gasInput.removeAttribute('readonly');
+    gasInput.value = remembered;
+    setEndpoint(gasInput.value);
+  }
+
+  unlockBtn.addEventListener('click', ()=>{
+    const key = (keyInput.value || '').trim();
+    if (key !== ADMIN_SECRET){ alert('金鑰錯誤'); return; }
+
+    adminPanel.style.display = 'block';
+    gasInput.removeAttribute('readonly');
+    if (!gasInput.value) gasInput.value = sessionStorage.getItem('gas_endpoint') || DEFAULT_GAS_URL || '';
+    setEndpoint(gasInput.value);
+
+    sessionStorage.setItem('admin_unlocked','1');
+    alert('已解鎖管理功能');
+  });
+
+  gasInput.addEventListener('input', ()=>{
+    setEndpoint(gasInput.value);
+  });
+
+  // 綁定 PING（需已解鎖且有 URL）
+  const pingBtn = document.getElementById('gasTestBtn');
+  if (pingBtn) {
+    pingBtn.onclick = async ()=>{
+      let endpoint;
+      try { endpoint = getEndpoint({ requireUnlocked:true }); }
+      catch (e) { alert(e.message || '請先輸入金鑰並設定 GAS URL'); return; }
+      try{
+        const r = await fetch(endpoint + '?get=1');
+        const t = await r.text();
+        alert('PING 回應：\n' + t.slice(0,500));
+      }catch(e){
+        alert('PING 失敗：' + (e.message || e));
+      }
+    };
+  }
+}
   
 async function loadCourseListForMakeup(){
-  // 若 URL 已帶 id/title 就不用顯示補登選單（掃 QR 直接進）
   const q = getQuery();
-  const hasPreset = (q.module||'').toLowerCase() === 'course' && (q.id || q.courseId || q.title);
+  const hasPreset = (q.module||'').toLowerCase()==='course' && (q.id || q.courseId || q.title);
   if (hasPreset) return;
 
-  const picker = document.getElementById('coursePicker');
+  const picker   = document.getElementById('coursePicker');
   const selectEl = document.getElementById('courseSelect');
   if (!picker || !selectEl) return;
 
-  // 顯示補登選單（預設隱藏）
   picker.style.display = 'grid';
 
-  // 取得 GAS Web App URL
-  const endpoint = (window.GAS_ENDPOINT || document.getElementById('gas_url')?.value || '').trim();
+  const endpoint = getEndpoint({ requireUnlocked:false });
   if (!endpoint){
-    // 沒設定就僅顯示 placeholder
-    selectEl.innerHTML = '<option value="">（尚未設定 GAS /exec，無法載入課程清單）</option>';
+    selectEl.innerHTML = '<option value="">（請先在管理設定輸入金鑰並設定 GAS /exec）</option>';
     return;
   }
 
   try{
-    // ★ 帶上 origin，後端有白名單檢查（允許空 origin 但帶上更穩妥）
     const url = `${endpoint}?action=courselist&origin=${encodeURIComponent(location.origin)}`;
     const res = await fetch(url);
     const data = await res.json();
 
     if (!data?.ok || !Array.isArray(data.items) || data.items.length === 0){
-      selectEl.innerHTML = '<option value="">（目前沒有可選課程，請到試算表 courselist 新增）</option>';
+      selectEl.innerHTML = '<option value="">（目前沒有可選課程，請在試算表 courselist 新增）</option>';
       return;
     }
 
-    // 塞選項：value 存 id；用 data-title 存 title
     const frag = document.createDocumentFragment();
     const ph = document.createElement('option');
     ph.value = '';
@@ -689,7 +713,6 @@ async function loadCourseListForMakeup(){
     selectEl.innerHTML = '';
     selectEl.appendChild(frag);
 
-    // 當使用者選取課程 → 設定全域 __COURSE__ + 標題顯示
     selectEl.onchange = ()=>{
       const opt = selectEl.options[selectEl.selectedIndex];
       const id = selectEl.value || '';
@@ -700,14 +723,16 @@ async function loadCourseListForMakeup(){
     };
   }catch(e){
     console.warn('載入課程清單失敗：', e);
-    selectEl.innerHTML = '<option value="">（清單載入失敗，稍後再試或改用 QR/URL 預選）</option>';
+    selectEl.innerHTML = '<option value="">（清單載入失敗，稍後再試）</option>';
   }
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
-  init();                 // ← 必須先跑，會 renderTabs()、隱藏其他分頁、綁事件等
-  loadCourseListForMakeup(); // 補登課程選單再載
-  bindAdminUnlock();
+  init();                      // 生成 UI
+  bindAdminUnlock();           // 金鑰解鎖 + 管理面板顯示/端點管理
+  applyCourseFromQuery();      // 處理 ?module=course&id=...&title=...
+  loadCourseListForMakeup();   // 無預選課程時，載入課程清單
 });
 
 </script>
