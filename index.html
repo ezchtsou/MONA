@@ -150,6 +150,16 @@ function applyCourseFromQuery(){
   };
 
   // 顯示在頁面標題上
+  if (hdr){
+    const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
+    hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
+  }
+
+  // ★ 若 URL 已有預選課程 → 隱藏補登選單
+  const picker = document.getElementById('coursePicker');
+  if (picker && (window.__COURSE__?.id || window.__COURSE__?.title)) {
+    picker.style.display = 'none';
+  }
   const hdr = document.getElementById('courseHeader');
   if (hdr){
     const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
@@ -579,37 +589,67 @@ function init(){
   }
 }
 async function loadCourseListForMakeup(){
-  // 若 URL 已帶 id/title 就不用顯示補登選單
+  // 若 URL 已帶 id/title 就不用顯示補登選單（掃 QR 直接進）
   const q = getQuery();
-  if ((q.module||'').toLowerCase() === 'course' && (q.id || q.title)) return;
+  const hasPreset = (q.module||'').toLowerCase() === 'course' && (q.id || q.courseId || q.title);
+  if (hasPreset) return;
 
-  // 顯示補登選單
   const picker = document.getElementById('coursePicker');
-  if (picker) picker.style.display = 'grid';
+  const selectEl = document.getElementById('courseSelect');
+  if (!picker || !selectEl) return;
 
-  const endpoint = (window.GAS_ENDPOINT || document.getElementById('gas_url')?.value);
-  if (!endpoint) return; // 沒設定 GAS 也就不載
+  // 顯示補登選單（預設隱藏）
+  picker.style.display = 'grid';
+
+  // 取得 GAS Web App URL
+  const endpoint = (window.GAS_ENDPOINT || document.getElementById('gas_url')?.value || '').trim();
+  if (!endpoint){
+    // 沒設定就僅顯示 placeholder
+    selectEl.innerHTML = '<option value="">（尚未設定 GAS /exec，無法載入課程清單）</option>';
+    return;
+  }
 
   try{
-    const r = await fetch(endpoint + '?action=courselist');
-    const data = await r.json();
-    const sel = document.getElementById('courseSelect');
-    if (sel && data?.ok && Array.isArray(data.items)){
-      sel.innerHTML = '<option value="">請選擇課程</option>' + 
-        data.items.map(it => `<option value="${encodeURIComponent(it.id)}|${encodeURIComponent(it.title)}">${it.id}｜${it.title}${it.instructor? '（'+it.instructor+'）':''}</option>`).join('');
-      sel.onchange = ()=>{
-        const v = sel.value;
-        if (!v) return;
-        const [idEnc, titleEnc] = v.split('|');
-        const id = decodeURIComponent(idEnc);
-        const title = decodeURIComponent(titleEnc);
-        window.__COURSE__ = { id, title };                      // 設定補登選的課
-        const hdr = document.getElementById('courseHeader');
-        if (hdr) hdr.textContent = `（${id}｜${title}）`;
-      };
+    // ★ 帶上 origin，後端有白名單檢查（允許空 origin 但帶上更穩妥）
+    const url = `${endpoint}?action=courselist&origin=${encodeURIComponent(location.origin)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data?.ok || !Array.isArray(data.items) || data.items.length === 0){
+      selectEl.innerHTML = '<option value="">（目前沒有可選課程，請到試算表 courselist 新增）</option>';
+      return;
     }
+
+    // 塞選項：value 存 id；用 data-title 存 title
+    const frag = document.createDocumentFragment();
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = '請選擇課程';
+    frag.appendChild(ph);
+
+    data.items.forEach(({id, title, instructor})=>{
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.dataset.title = title || '';
+      opt.textContent = instructor ? `${id}｜${title}（${instructor}）` : `${id}｜${title}`;
+      frag.appendChild(opt);
+    });
+
+    selectEl.innerHTML = '';
+    selectEl.appendChild(frag);
+
+    // 當使用者選取課程 → 設定全域 __COURSE__ + 標題顯示
+    selectEl.onchange = ()=>{
+      const opt = selectEl.options[selectEl.selectedIndex];
+      const id = selectEl.value || '';
+      const title = opt?.dataset?.title || '';
+      window.__COURSE__ = { id, title };
+      const hdr = document.getElementById('courseHeader');
+      if (hdr) hdr.textContent = id ? `（${id}｜${title}）` : '';
+    };
   }catch(e){
-    console.warn('載入課程清單失敗', e);
+    console.warn('載入課程清單失敗：', e);
+    selectEl.innerHTML = '<option value="">（清單載入失敗，稍後再試或改用 QR/URL 預選）</option>';
   }
 }
 
