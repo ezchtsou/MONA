@@ -30,6 +30,9 @@
     th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:6px}
     /* 高亮已選的單選框所在儲存格（現代瀏覽器支援 :has） */
     td:has(input[type=radio]:checked){background:var(--active)}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   </style>
 </head>
 <body>
@@ -141,6 +144,15 @@
       </div>
     </div>
     <!-- 之後的匿名圖表會放在這個面板下 -->
+    <section id="adminCharts" class="card" style="display:none;margin-top:16px">
+  <h3>📈 匿名彙整預覽</h3>
+  <p class="muted">資料來自分析GS輸出的彙整表（僅平均/統計，不含個資）。</p>
+  <div style="display:grid;grid-template-columns:1fr;gap:18px">
+    <canvas id="chartWeeklyTrend"></canvas>
+    <canvas id="chartSkillAvg"></canvas>
+    <canvas id="chartCourseQ1"></canvas>
+  </div>
+</section>
     <!-- <section id="adminCharts" class="card" style="display:none"> ... </section> -->
   </div>
 </section>
@@ -547,6 +559,106 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
   const el = document.getElementById('date');
   if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
 });
+
+  // ========= 取匿名彙整資料 =========
+async function fetchAnalytics(names){
+  const endpoint = getEndpoint({ requireUnlocked: true }); // 需解鎖
+  const url = `${endpoint}?action=analytics&names=${encodeURIComponent(names.join(','))}&origin=${encodeURIComponent(location.origin)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data?.ok) throw new Error('analytics API 失敗');
+  return data.items || {};
+}
+
+// ========= 畫圖小工具（Chart.js）=========
+function drawLine(canvasId, labels, values, label){
+  const el = document.getElementById(canvasId); if (!el) return;
+  if (el._chart) { el._chart.destroy(); }
+  el._chart = new Chart(el, {
+    type:'line',
+    data:{ labels, datasets:[{ label, data: values }] },
+    options:{ responsive:true, scales:{ y:{ suggestedMin:1, suggestedMax:5 } } }
+  });
+}
+function drawBar(canvasId, labels, values, label){
+  const el = document.getElementById(canvasId); if (!el) return;
+  if (el._chart) { el._chart.destroy(); }
+  el._chart = new Chart(el, {
+    type:'bar',
+    data:{ labels, datasets:[{ label, data: values }] },
+    options:{ responsive:true, scales:{ y:{ suggestedMin:1, suggestedMax:5 } } }
+  });
+}
+
+  
+// ========= 主程式：渲染三張匿名圖 =========
+async function renderAdminCharts(){
+  const panel = document.getElementById('adminCharts');
+  if (!panel) return;
+  try{
+    const names = ['weekly_compare','stats_skill','stats_course'];
+    const items = await fetchAnalytics(names);
+
+    // ① 每周趨勢：按日平均（把所有 Q*_avg 再取平均）
+    {
+      const rows = items.weekly_compare || [];
+      const qCols = Object.keys(rows[0]||{}).filter(k=>/^Q\d+_avg$/.test(k))
+        .sort((a,b)=> parseInt(a.slice(1),10) - parseInt(b.slice(1),10));
+      const labels = rows.map(r=> String(r.date||r['date']||''));
+      const series = rows.map(r=>{
+        if (!qCols.length) return 0;
+        const sum = qCols.reduce((s,k)=> s + Number(r[k]||0), 0);
+        return +(sum / qCols.length).toFixed(2);
+      });
+      drawLine('chartWeeklyTrend', labels, series, '每周問卷整體平均（每日）');
+    }
+
+    // ② skill 題目平均：Q1~Qn 的 avg 長條圖
+    {
+      const rows = (items.stats_skill || []).filter(r=> r['題號 question']);
+      const labels = rows.map(r=> String(r['題號 question']));
+      const values = rows.map(r=> +Number(r['平均 avg']||0).toFixed(2));
+      drawBar('chartSkillAvg', labels, values, '中期技能（skill）各題平均');
+    }
+
+    // ③ 課堂問卷 Q1 平均：Top 8
+    {
+      const rows = items.stats_course || [];
+      const q1 = rows.filter(r => String(r.question||r['question']||'').toUpperCase()==='Q1');
+      q1.sort((a,b)=> Number(b.avg||b['avg']||0) - Number(a.avg||a['avg']||0));
+      const top = q1.slice(0,8);
+      const labels = top.map(r=> `${r.courseId||''} ${r.courseTitle||''}`.trim());
+      const values = top.map(r=> +Number(r.avg||r['avg']||0).toFixed(2));
+      drawBar('chartCourseQ1', labels, values, '課堂問卷 Q1 平均（Top 8）');
+    }
+
+    panel.style.display = 'block';
+  }catch(e){
+    console.warn('renderAdminCharts() 失敗：', e);
+    if (panel) {
+      panel.style.display = 'block';
+      panel.querySelector('div')?.insertAdjacentHTML('afterbegin',
+        `<div class="muted">（載入圖表失敗：${(e.message||e)}）</div>`);
+    }
+  }
+// 曾解鎖過（自動復原）時：
+if (wasUnlocked) {
+  adminPanel.style.display = 'block';
+  gasInput.removeAttribute('readonly');
+  gasInput.value = remembered;
+  setEndpoint(gasInput.value);
+  renderAdminCharts(); // ★ 加這行
+}
+
+// 使用者點「啟用管理」成功解鎖時：
+unlockBtn.addEventListener('click', ()=>{
+  // ...原本的顯示/設定邏輯...
+  sessionStorage.setItem('admin_unlocked','1');
+  alert('已解鎖管理功能');
+  renderAdminCharts(); // ★ 再加這行
+});
+ 
+}
 
 /***** 6) 初始化 *****/
 function init(){
