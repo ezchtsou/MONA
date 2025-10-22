@@ -48,7 +48,7 @@
       <div class="row">
         <div>
           <label>使用者代號（employeeId）</label>
-          <input id="employeeId" type="text" placeholder="例如：VHC-2025-001" />
+          <input id="employeeId" type="text" placeholder="例如：9999M0000" />
         </div>
         <div>
           <label>姓名</label>
@@ -68,6 +68,19 @@
       </div>
     </section>
 
+ <section id="tab-7" class="card">
+  <h2>📘 課堂問卷 <span id="courseHeader" class="muted"></span></h2>
+  <div id="coursePicker" class="row" style="margin-bottom:12px; display:none">
+    <div>
+      <label>選擇課程（補填）</label>
+      <select id="courseSelect"><option value="">請選擇課程</option></select>
+    </div>
+  </div>
+  <p class="muted">請以五點量表作答（1＝非常不同意，5＝非常同意）。</p>
+  <div class="form-host"></div>
+  <div class="btns"><button class="primary" type="button">送出課堂問卷</button></div>
+</section>
+    
 <!-- 🗓 每周問卷 -->
    <section id="tab-6" class="card">
   <h2>🗓 每周問卷</h2>
@@ -103,33 +116,26 @@
 </section>
     
     <section id="tab-5" class="card">
-      <h2>🛠️ 管理設定（Admin）</h2>
-      <p class="muted">輸入金鑰後可編輯 GAS URL；預設已設定為你的 /exec。</p>
-      <div class="row">
-        <div>
-          <label>管理金鑰</label>
-          <input id="adminKey" type="password" placeholder="輸入：MONAADMIN" />
-          <div class="btns"><button id="adminUnlock" type="button">啟用編輯</button></div>
-        </div>
-        <div>
-          <label>GAS Web App URL（/exec）</label>
-          <input id="gas_url" type="text" value="https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec" readonly />
-          <div class="btns"><button id="gasTestBtn" type="button">測試連線（PING）</button></div>
-        </div>
-      </div>
-    </section>
+  <h2>🛠️ 管理設定（Admin）</h2>
+  <p class="muted">輸入管理金鑰後即可編輯與測試 GAS Web App URL。</p>
 
-   <section id="tab-7" class="card">
-  <h2>📘 課堂問卷 <span id="courseHeader" class="muted"></span></h2>
-  <div id="coursePicker" class="row" style="margin-bottom:12px; display:none">
+  <div class="row">
     <div>
-      <label>選擇課程（補填）</label>
-      <select id="courseSelect"><option value="">請選擇課程</option></select>
+      <label>管理金鑰</label>
+      <input id="adminKey" type="password" placeholder="請輸入金鑰" />
+      <div class="btns">
+        <button id="adminUnlock" type="button">啟用編輯</button>
+      </div>
+    </div>
+
+    <div>
+      <label>GAS Web App URL（/exec）</label>
+      <input id="gas_url" type="text" readonly />
+      <div class="btns">
+        <button id="gasTestBtn" type="button">測試連線（PING）</button>
+      </div>
     </div>
   </div>
-  <p class="muted">請以五點量表作答（1＝非常不同意，5＝非常同意）。</p>
-  <div class="form-host"></div>
-  <div class="btns"><button class="primary" type="button">送出課堂問卷</button></div>
 </section>
     
   </main>
@@ -588,6 +594,51 @@ function init(){
     });
   }
 }
+
+// ★ 新增：管理金鑰驗證與解鎖
+// === 管理金鑰 & 預設 URL（你可以改這兩行） ===
+const ADMIN_SECRET     = 'MONAADMIN'; // ← 換密碼就改這行
+const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec'; // ← 你的 /exec
+
+// === 綁定「啟用編輯」邏輯：解鎖後才顯示/可編輯 GAS URL ===
+function bindAdminUnlock() {
+  const unlockBtn = document.getElementById('adminUnlock');
+  const keyInput  = document.getElementById('adminKey');
+  const gasInput  = document.getElementById('gas_url');
+  if (!unlockBtn || !keyInput || !gasInput) return;
+
+  // 預設先隱藏內容（不影響 placeholder）
+  gasInput.value = '';               // 清空顯示
+  gasInput.setAttribute('readonly', ''); // 保持唯讀
+
+  // 若本次瀏覽已解鎖過（sessionStorage），自動顯示與解鎖
+  if (sessionStorage.getItem('admin_unlocked') === '1') {
+    gasInput.removeAttribute('readonly');
+    gasInput.value = DEFAULT_GAS_URL;
+  }
+
+  unlockBtn.addEventListener('click', () => {
+    const key = (keyInput.value || '').trim();
+    if (key !== ADMIN_SECRET) {
+      alert('金鑰錯誤');
+      return;
+    }
+    gasInput.removeAttribute('readonly');
+    if (!gasInput.value) gasInput.value = DEFAULT_GAS_URL; // 解鎖後才填入
+    sessionStorage.setItem('admin_unlocked', '1');
+    alert('已解鎖，可編輯 GAS URL');
+  });
+}
+
+
+// 在 init() 執行後呼叫
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  loadCourseListForMakeup();
+  bindAdminUnlock(); // ★ 加上這行
+});
+
+  
 async function loadCourseListForMakeup(){
   // 若 URL 已帶 id/title 就不用顯示補登選單（掃 QR 直接進）
   const q = getQuery();
@@ -656,6 +707,7 @@ async function loadCourseListForMakeup(){
 document.addEventListener('DOMContentLoaded', () => {
   init();                 // ← 必須先跑，會 renderTabs()、隱藏其他分頁、綁事件等
   loadCourseListForMakeup(); // 補登課程選單再載
+  bindAdminUnlock();
 });
 
 </script>
