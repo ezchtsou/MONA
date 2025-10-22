@@ -31,9 +31,10 @@
     /* 高亮已選的單選框所在儲存格（現代瀏覽器支援 :has） */
     td:has(input[type=radio]:checked){background:var(--active)}
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  </style>
+</style>
+  
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
 </head>
 <body>
   <header>
@@ -160,49 +161,45 @@
   </main>
   
 <script>
+/* =========================================================
+ * [01] 全域設定（Admin 金鑰 / GAS 端點）
+ * =======================================================*/
+const ADMIN_SECRET     = 'ADMIN'; // ← 換密碼改這行
+const DEFAULT_GAS_URL  = '';      // ← 不預先外露；解鎖後再貼
 
-function getQuery(){ try { return Object.fromEntries(new URL(location.href).searchParams.entries()); } catch { return {}; } }
-
-function applyCourseFromQuery(){
-  const q = getQuery();
-  if ((q.module||'').toLowerCase() !== 'course') return;
-
-  window.__COURSE__ = {
-    id: q.courseId || q.id || '',
-    title: q.title || ''
-  };
-
-  const hdr = document.getElementById('courseHeader');
-  if (hdr){
-    const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
-    hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
-  }
-
-  const picker = document.getElementById('coursePicker');
-  if (picker && (window.__COURSE__?.id || window.__COURSE__?.title)) {
-    picker.style.display = 'none';
-  }
-
-  const idx = (FORM_CONFIG.tabs || []).findIndex(t=> t.kind==='course');
-  if (idx >= 0) switchTab(idx);
+// 單一資料來源：端點管理（所有功能都用這兩個）
+function setEndpoint(url){
+  window.GAS_ENDPOINT = (url || '').trim();
+  if (window.GAS_ENDPOINT) sessionStorage.setItem('gas_endpoint', window.GAS_ENDPOINT);
+}
+function getEndpoint({ requireUnlocked = false } = {}){
+  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
+  let ep = sessionStorage.getItem('gas_endpoint') || window.GAS_ENDPOINT || '';
+  const viaInput = document.getElementById('gas_url')?.value?.trim();
+  if (viaInput) ep = viaInput;
+  const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
+  if (unlocked && qs) ep = decodeURIComponent(qs);
+  if (requireUnlocked && !unlocked) throw new Error('尚未解鎖管理金鑰');
+  return ep || '';
 }
 
-
-/***** 0) 公用保底：profile / toast / submitToGAS *****/
+/* =========================================================
+ * [02] 小工具（Query 解析 / 提示 / 使用者基本資料）
+ * =======================================================*/
+function getQuery(){ try { return Object.fromEntries(new URL(location.href).searchParams.entries()); } catch { return {}; } }
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
-window.toast = window.toast || (msg => alert(msg));
+window.toast   = window.toast   || (msg => alert(msg));
 
-// 用 POST 提交，不設 Content-Type（避免 CORS 預檢），並提供更清楚的錯誤
+/* =========================================================
+ * [03] 與 GAS 溝通（送單一 payload；匿名圖表另見 [09]）
+ * =======================================================*/
 async function submitToGAS(payload){
   let endpoint = getEndpoint({ requireUnlocked: false });
   if (!endpoint) throw new Error('尚未設定 GAS Web App URL（請到管理設定輸入金鑰並設定 /exec）');
 
   let res;
-  try {
-    res = await fetch(endpoint, { method: 'POST', body: JSON.stringify(payload) });
-  } catch (e) {
-    throw new Error('無法連線到 GAS（網路/CORS）：' + (e.message || '連線失敗'));
-  }
+  try { res = await fetch(endpoint, { method:'POST', body: JSON.stringify(payload) }); }
+  catch (e) { throw new Error('無法連線到 GAS（網路/CORS）：' + (e.message || '連線失敗')); }
 
   let text;
   try { text = await res.text(); }
@@ -210,15 +207,16 @@ async function submitToGAS(payload){
 
   try {
     const data = JSON.parse(text);
-    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     return data;
   } catch {
     throw new Error('GAS 非 JSON 回應（可能是舊部署/權限/白名單）：' + String(text).slice(0,200));
   }
 }
 
-
-/***** 1) 設定：所有問卷集中在這裡 *****/
+/* =========================================================
+ * [04] 問卷配置（FORM_CONFIG：標籤順序、題目、開放題、extras）
+ * =======================================================*/
 const FORM_CONFIG = {
   tabs: [
     { id:'tab-0', name:'基本資訊', kind:'basic' },
@@ -330,18 +328,20 @@ const FORM_CONFIG = {
   ]
 };
 
-/***** 2) 分頁 UI *****/
+/* =========================================================
+ * [05] 分頁 UI（建立標籤、切換、Hash 導航）
+ * =======================================================*/
 function renderTabs(){
-  const tabsHost = document.getElementById('tabs');
+  const host = document.getElementById('tabs');
   const specs = FORM_CONFIG.tabs.map(t=>({id:t.id, name:t.name}));
   window.__TAB_SPECS = specs;
-  tabsHost.innerHTML = '';
+  host.innerHTML = '';
   specs.forEach((t,i)=>{
     const btn = document.createElement('button');
-    btn.className = 'tab'+(i===0?' active':'');
+    btn.className = 'tab' + (i===0 ? ' active' : '');
     btn.textContent = t.name;
     btn.addEventListener('click', ()=> switchTab(i));
-    tabsHost.appendChild(btn);
+    host.appendChild(btn);
   });
 }
 function switchTab(index){
@@ -355,7 +355,7 @@ function switchTab(index){
   });
   const names = FORM_CONFIG.tabs.map(t=>t.kind);
   const h = names[index] || FORM_CONFIG.tabs[0].kind;
-  if(location.hash !== '#'+h) history.replaceState(null,'','#'+h);
+  if (location.hash !== '#'+h) history.replaceState(null,'','#'+h);
 }
 function applyHash(){
   const names = FORM_CONFIG.tabs.map(t=>t.kind);
@@ -364,20 +364,19 @@ function applyHash(){
   switchTab(map[key] ?? 0);
 }
 
-/***** 3) 自動渲染所有問卷 *****/
+/* =========================================================
+ * [06] 問卷渲染（依 FORM_CONFIG 產生表格/輸入）
+ * =======================================================*/
 function renderAllForms(){
   FORM_CONFIG.tabs.forEach(tab=>{
-    if(['basic','admin'].includes(tab.kind)) return; // 非問卷頁略過
+    if(['basic','admin'].includes(tab.kind)) return;
     const sec = document.getElementById(tab.id);
     if(!sec) return;
 
     let html = '';
     if (tab.kind === 'messages') {
       const label = (tab.opens && tab.opens[0]) || '請輸入意見';
-      html = `
-        <label>${label}</label>
-        <textarea id="${tab.id}-open-0" placeholder="請填寫"></textarea>
-      `;
+      html = `<label>${label}</label><textarea id="${tab.id}-open-0" placeholder="請填寫"></textarea>`;
     } else {
       if (Array.isArray(tab.likertTexts)) {
         const rows = tab.likertTexts.map((text,i)=>{
@@ -385,53 +384,39 @@ function renderAllForms(){
           const radios=[1,2,3,4,5].map(v=>`<td><input type="radio" name="${name}" value="${v}"></td>`).join('');
           return `<tr><td>${n}. ${text}</td>${radios}</tr>`;
         }).join('');
-        html += `
-          <table>
-            <tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-            ${rows}
-          </table>`;
+        html += `<table><tr><th>題目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>${rows}</table>`;
       }
       if (Array.isArray(tab.opens)) {
-        html += tab.opens.map((t,i)=>`
-          <label>${t}</label>
-          <textarea id="${tab.id}-open-${i}" placeholder="請填寫"></textarea>
-        `).join('');
+        html += tab.opens.map((t,i)=>`<label>${t}</label><textarea id="${tab.id}-open-${i}" placeholder="請填寫"></textarea>`).join('');
       }
-      // 額外欄位（extras）
-if (Array.isArray(tab.extras)) {
-  html += tab.extras.map(ex=>{
-    if (ex.type === 'select') {
-      const opts = (ex.options||[]).map(o=>{
-        const sel = (o.value === ex.default) ? ' selected' : '';
-        return `<option value="${o.value}"${sel}>${o.label}</option>`;
-      }).join('');
-      return `
-        <label>${ex.label}${ex.required?'（必填）':''}</label>
-        <select id="${tab.id}-extra-${ex.key}">${opts}</select>
-      `;
-    } else {
-      // text 輸入
-      const ph = ex.label + (ex.required?'（必填）':'');
-      const val = ex.default ? ` value="${ex.default}"` : '';
-      return `
-        <label>${ex.label}${ex.required?'（必填）':''}</label>
-        <input id="${tab.id}-extra-${ex.key}" type="text" placeholder="${ph}"${val}>
-      `;
-    }
-  }).join('');
-}
+      if (Array.isArray(tab.extras)) {
+        html += tab.extras.map(ex=>{
+          if (ex.type === 'select') {
+            const opts = (ex.options||[]).map(o=>{
+              const sel = (o.value === ex.default) ? ' selected' : '';
+              return `<option value="${o.value}"${sel}>${o.label}</option>`;
+            }).join('');
+            return `<label>${ex.label}${ex.required?'（必填）':''}</label><select id="${tab.id}-extra-${ex.key}">${opts}</select>`;
+          } else {
+            const ph = ex.label + (ex.required?'（必填）':'');
+            const val = ex.default ? ` value="${ex.default}"` : '';
+            return `<label>${ex.label}${ex.required?'（必填）':''}</label><input id="${tab.id}-extra-${ex.key}" type="text" placeholder="${ph}"${val}>`;
+          }
+        }).join('');
+      }
     }
     let host = sec.querySelector('.form-host');
     if(!host){ host = document.createElement('div'); host.className='form-host'; const btns=sec.querySelector('.btns'); sec.insertBefore(host, btns||null); }
     host.innerHTML = html;
 
-    // 綁定送出按鈕
     const btn = sec.querySelector('.btns .primary');
     if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }
   });
 }
 
-/***** 4) 讀值/驗證/打包 *****/
+/* =========================================================
+ * [07] 讀值 / 驗證 / 打包 / 送出
+ * =======================================================*/
 function readLikert(prefix, count){
   const out = [];
   for(let i=1;i<=count;i++){
@@ -441,22 +426,11 @@ function readLikert(prefix, count){
   return out;
 }
 function buildPayload(tab){
-  const base = {
-    module: tab.kind,
-    employeeId: profile.employeeId,
-    fullName:   profile.fullName,
-    dept:       profile.dept,
-    date:       profile.date,
-    ts:         Date.now()
-  };
-
-  // messages：只送 body
+  const base = { module:tab.kind, employeeId:profile.employeeId, fullName:profile.fullName, dept:profile.dept, date:profile.date, ts:Date.now() };
   if (tab.kind === 'messages') {
     const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
     return { ...base, body };
   }
-
-  // 其它問卷：scores / opens / extras
   const scores = Array.isArray(tab.likertTexts) ? readLikert(tab.prefix, tab.likertTexts.length) : [];
   const opens  = Array.isArray(tab.opens) ? tab.opens.map((_,i)=> (document.getElementById(`${tab.id}-open-${i}`)?.value||'').trim()) : [];
   const extras = {};
@@ -466,45 +440,34 @@ function buildPayload(tab){
       extras[ex.key] = v.trim();
     });
   }
-
-  // ★ grow360 保底：role 預設 self；rateeId 空白時帶本人 ID
   if (tab.kind === 'grow360') {
     if (!extras.role) extras.role = 'self';
     if (!extras.rateeId && profile?.employeeId) extras.rateeId = profile.employeeId;
   }
-
-if (tab.kind === 'course') {
-  const c = window.__COURSE__ || {};
-  extras.courseId    = extras.courseId    || c.id || '';
-  extras.courseTitle = extras.courseTitle || c.title || '';
-}
-  
+  if (tab.kind === 'course') {
+    const c = window.__COURSE__ || {};
+    extras.courseId    = extras.courseId    || c.id    || '';
+    extras.courseTitle = extras.courseTitle || c.title || '';
+  }
   return { ...base, scores, opens, extras };
 }
-
 function validateTab(tab){
   if (typeof readBasic === 'function') readBasic();
   if(!profile?.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
-
   if (tab.kind === 'messages') {
     const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
     if(!body){ toast('請輸入意見內容'); return false; }
     return true;
   }
-
-  // Likert 必填檢查
   if (Array.isArray(tab.likertTexts)) {
     const vals = readLikert(tab.prefix, tab.likertTexts.length);
     const miss = vals.map((v,i)=> v==null ? (i+1) : null).filter(Boolean);
     if(miss.length){ toast(`請完成第 ${miss.join(', ')} 題`); return false; }
   }
-
-  // ★ extras 必填檢查（例如 grow360 的 role / rateeId）
   if (Array.isArray(tab.extras)) {
     for (const ex of tab.extras) {
       if (!ex.required) continue;
       let v = document.getElementById(`${tab.id}-extra-${ex.key}`)?.value?.trim() || '';
-      // grow360：rateeId 可用本人 ID 作為預設
       if (tab.kind === 'grow360' && ex.key === 'rateeId' && !v && profile?.employeeId) {
         v = profile.employeeId;
         const el = document.getElementById(`${tab.id}-extra-${ex.key}`); if (el) el.value = v;
@@ -514,7 +477,6 @@ function validateTab(tab){
   }
   return true;
 }
-
 async function submitByKind(kind){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind===kind);
   if(!tab) return;
@@ -532,22 +494,12 @@ async function submitByKind(kind){
     console.error(e);
     if(btn){ btn.disabled=false; btn.textContent=old; }
     toast('送出失敗：'+e.message);
-    if (Array.isArray(tab.extras)) {
-  for (const ex of tab.extras) {
-    if (ex.required) {
-      const v = document.getElementById(`${tab.id}-extra-${ex.key}`)?.value?.trim() || '';
-      if (!v && !(tab.kind==='grow360' && ex.key==='rateeId' && profile?.employeeId)) {
-        toast(`${ex.label} 為必填`);
-        return false;
-      }
-    }
-  }
-}
-   
   }
 }
 
-/***** 5) 基本資訊輔助（可用你的原版覆蓋） *****/
+/* =========================================================
+ * [08] 基本資訊輔助（填今天 / 顯示使用者ID）
+ * =======================================================*/
 function readBasic(){
   profile.employeeId = document.getElementById('employeeId')?.value?.trim() || profile.employeeId;
   profile.fullName   = document.getElementById('fullName')?.value?.trim()   || profile.fullName;
@@ -560,7 +512,9 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
   if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
 });
 
-  // ========= 取匿名彙整資料 =========
+/* =========================================================
+ * [09] 匿名圖表（只讀彙整表；需解鎖）
+ * =======================================================*/
 async function fetchAnalytics(names){
   const endpoint = getEndpoint({ requireUnlocked: true }); // 需解鎖
   const url = `${endpoint}?action=analytics&names=${encodeURIComponent(names.join(','))}&origin=${encodeURIComponent(location.origin)}`;
@@ -569,11 +523,9 @@ async function fetchAnalytics(names){
   if (!data?.ok) throw new Error('analytics API 失敗');
   return data.items || {};
 }
-
-// ========= 畫圖小工具（Chart.js）=========
 function drawLine(canvasId, labels, values, label){
   const el = document.getElementById(canvasId); if (!el) return;
-  if (el._chart) { el._chart.destroy(); }
+  if (el._chart) el._chart.destroy();
   el._chart = new Chart(el, {
     type:'line',
     data:{ labels, datasets:[{ label, data: values }] },
@@ -582,16 +534,13 @@ function drawLine(canvasId, labels, values, label){
 }
 function drawBar(canvasId, labels, values, label){
   const el = document.getElementById(canvasId); if (!el) return;
-  if (el._chart) { el._chart.destroy(); }
+  if (el._chart) el._chart.destroy();
   el._chart = new Chart(el, {
     type:'bar',
     data:{ labels, datasets:[{ label, data: values }] },
     options:{ responsive:true, scales:{ y:{ suggestedMin:1, suggestedMax:5 } } }
   });
 }
-
-  
-// ========= 主程式：渲染三張匿名圖 =========
 async function renderAdminCharts(){
   const panel = document.getElementById('adminCharts');
   if (!panel) return;
@@ -599,131 +548,46 @@ async function renderAdminCharts(){
     const names = ['weekly_compare','stats_skill','stats_course'];
     const items = await fetchAnalytics(names);
 
-    // ① 每周趨勢：按日平均（把所有 Q*_avg 再取平均）
-    {
-      const rows = items.weekly_compare || [];
-      const qCols = Object.keys(rows[0]||{}).filter(k=>/^Q\d+_avg$/.test(k))
-        .sort((a,b)=> parseInt(a.slice(1),10) - parseInt(b.slice(1),10));
-      const labels = rows.map(r=> String(r.date||r['date']||''));
-      const series = rows.map(r=>{
-        if (!qCols.length) return 0;
-        const sum = qCols.reduce((s,k)=> s + Number(r[k]||0), 0);
-        return +(sum / qCols.length).toFixed(2);
-      });
-      drawLine('chartWeeklyTrend', labels, series, '每周問卷整體平均（每日）');
-    }
+    // ① 每周趨勢（Q*_avg 的均值）
+    const wk = items.weekly_compare || [];
+    const qCols = wk.length ? Object.keys(wk[0]).filter(k=>/^Q\d+_avg$/.test(k)).sort((a,b)=>+a.slice(1)-+b.slice(1)) : [];
+    const wkLabels = wk.map(r=> String(r.date||r['date']||''));
+    const wkSeries = wk.map(r=>{
+      if (!qCols.length) return 0;
+      const sum = qCols.reduce((s,k)=> s + Number(r[k]||0), 0);
+      return +(sum / qCols.length).toFixed(2);
+    });
+    drawLine('chartWeeklyTrend', wkLabels, wkSeries, '每周問卷整體平均（每日）');
 
-    // ② skill 題目平均：Q1~Qn 的 avg 長條圖
-    {
-      const rows = (items.stats_skill || []).filter(r=> r['題號 question']);
-      const labels = rows.map(r=> String(r['題號 question']));
-      const values = rows.map(r=> +Number(r['平均 avg']||0).toFixed(2));
-      drawBar('chartSkillAvg', labels, values, '中期技能（skill）各題平均');
-    }
+    // ② skill：各題平均
+    const sk = (items.stats_skill || []).filter(r=> r['題號 question']);
+    drawBar('chartSkillAvg',
+      sk.map(r=> String(r['題號 question'])),
+      sk.map(r=> +Number(r['平均 avg']||0).toFixed(2)),
+      '中期技能（skill）各題平均'
+    );
 
-    // ③ 課堂問卷 Q1 平均：Top 8
-    {
-      const rows = items.stats_course || [];
-      const q1 = rows.filter(r => String(r.question||r['question']||'').toUpperCase()==='Q1');
-      q1.sort((a,b)=> Number(b.avg||b['avg']||0) - Number(a.avg||a['avg']||0));
-      const top = q1.slice(0,8);
-      const labels = top.map(r=> `${r.courseId||''} ${r.courseTitle||''}`.trim());
-      const values = top.map(r=> +Number(r.avg||r['avg']||0).toFixed(2));
-      drawBar('chartCourseQ1', labels, values, '課堂問卷 Q1 平均（Top 8）');
-    }
+    // ③ course：Q1 Top 8
+    const cs = (items.stats_course || []).filter(r=> String(r.question||r['question']||'').toUpperCase()==='Q1')
+      .sort((a,b)=> Number(b.avg||b['avg']||0) - Number(a.avg||a['avg']||0))
+      .slice(0,8);
+    drawBar('chartCourseQ1',
+      cs.map(r=> `${r.courseId||''} ${r.courseTitle||''}`.trim()),
+      cs.map(r=> +Number(r.avg||r['avg']||0).toFixed(2)),
+      '課堂問卷 Q1 平均（Top 8）'
+    );
 
     panel.style.display = 'block';
   }catch(e){
     console.warn('renderAdminCharts() 失敗：', e);
-    if (panel) {
-      panel.style.display = 'block';
-      panel.querySelector('div')?.insertAdjacentHTML('afterbegin',
-        `<div class="muted">（載入圖表失敗：${(e.message||e)}）</div>`);
-    }
-  }
-// 曾解鎖過（自動復原）時：
-if (wasUnlocked) {
-  adminPanel.style.display = 'block';
-  gasInput.removeAttribute('readonly');
-  gasInput.value = remembered;
-  setEndpoint(gasInput.value);
-  renderAdminCharts(); // ★ 加這行
-}
-
-// 使用者點「啟用管理」成功解鎖時：
-unlockBtn.addEventListener('click', ()=>{
-  // ...原本的顯示/設定邏輯...
-  sessionStorage.setItem('admin_unlocked','1');
-  alert('已解鎖管理功能');
-  renderAdminCharts(); // ★ 再加這行
-});
- 
-}
-
-/***** 6) 初始化 *****/
-function init(){
-  // 1) 生成分頁按鈕
-  renderTabs();
-
-  // 2) 先隱藏除第 1 頁以外的分頁
-  FORM_CONFIG.tabs.slice(1).forEach(t=>{
-    const el = document.getElementById(t.id);
-    if (el) el.style.display = 'none';
-  });
-
-  // 3) 根據 FORM_CONFIG 自動渲染所有問卷
-  renderAllForms();
-
-  // 4) hash 導航
-  applyHash();
-  window.addEventListener('hashchange', applyHash);
-
-  // 5) ★ 課堂問卷：讀取 URL 參數（module=course&id=...&title=...），自動切到課堂問卷並顯示課名
-  applyCourseFromQuery();
-
-  // 6) ★ 在 DOM 準備好後，再綁定「測試連線」按鈕
-  const pingBtn = document.getElementById('gasTestBtn');
-  if (pingBtn) {
-    pingBtn.addEventListener('click', async ()=>{
-      const endpoint = window.GAS_ENDPOINT || document.getElementById('gas_url')?.value;
-      if(!endpoint){ alert('請先設定 GAS /exec'); return; }
-      try{
-        const r = await fetch(endpoint + '?get=1');
-        const t = await r.text();
-        alert('PING 回應：\n' + t.slice(0,500));
-      }catch(e){
-        alert('PING 失敗：' + (e.message || e));
-      }
-    });
+    panel.style.display = 'block';
+    panel.querySelector('div')?.insertAdjacentHTML('afterbegin', `<div class="muted">（載入圖表失敗：${(e.message||e)}）</div>`);
   }
 }
 
-// === 管理金鑰 & 預設 URL（依需要修改） ===
-const ADMIN_SECRET     = 'ADMIN'; // ← 換密碼改這行
-const DEFAULT_GAS_URL  = '';      // 不預設外露；解鎖後可貼上 /exec
-
-// === 端點單一資料來源（所有功能都用這兩個） ===
-function setEndpoint(url){
-  window.GAS_ENDPOINT = (url || '').trim();
-  if (window.GAS_ENDPOINT) sessionStorage.setItem('gas_endpoint', window.GAS_ENDPOINT);
-}
-function getEndpoint({ requireUnlocked = false } = {}){
-  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
-
-  // 先取記憶的，再看當前欄位值，再看全域
-  let ep = sessionStorage.getItem('gas_endpoint') || window.GAS_ENDPOINT || '';
-  const viaInput = document.getElementById('gas_url')?.value?.trim();
-  if (viaInput) ep = viaInput;
-
-  // 僅在已解鎖時，允許用 ?gas= 覆蓋
-  const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
-  if (unlocked && qs) ep = decodeURIComponent(qs);
-
-  if (requireUnlocked && !unlocked) throw new Error('尚未解鎖管理金鑰');
-  if (!ep) return ''; // 可能還沒設定
-  return ep;
-}
-
+/* =========================================================
+ * [10] Admin 解鎖（顯示面板 / 設定端點 / PING / 觸發圖表）
+ * =======================================================*/
 function bindAdminUnlock(){
   const unlockBtn  = document.getElementById('adminUnlock');
   const keyInput   = document.getElementById('adminKey');
@@ -731,12 +595,10 @@ function bindAdminUnlock(){
   const gasInput   = document.getElementById('gas_url');
   if (!unlockBtn || !keyInput || !adminPanel || !gasInput) return;
 
-  // 預設隱藏面板、清空 URL、設唯讀
   adminPanel.style.display = 'none';
   gasInput.value = '';
   gasInput.setAttribute('readonly','');
 
-  // 回復先前解鎖狀態（同一分頁/同一 session）
   const wasUnlocked = sessionStorage.getItem('admin_unlocked') === '1';
   const remembered  = sessionStorage.getItem('gas_endpoint') || DEFAULT_GAS_URL || '';
   if (wasUnlocked) {
@@ -744,6 +606,7 @@ function bindAdminUnlock(){
     gasInput.removeAttribute('readonly');
     gasInput.value = remembered;
     setEndpoint(gasInput.value);
+    renderAdminCharts(); // ★ 自動復原時就載圖
   }
 
   unlockBtn.addEventListener('click', ()=>{
@@ -757,13 +620,11 @@ function bindAdminUnlock(){
 
     sessionStorage.setItem('admin_unlocked','1');
     alert('已解鎖管理功能');
+    renderAdminCharts(); // ★ 解鎖成功後載圖
   });
 
-  gasInput.addEventListener('input', ()=>{
-    setEndpoint(gasInput.value);
-  });
+  gasInput.addEventListener('input', ()=> setEndpoint(gasInput.value) );
 
-  // 綁定 PING（需已解鎖且有 URL）
   const pingBtn = document.getElementById('gasTestBtn');
   if (pingBtn) {
     pingBtn.onclick = async ()=>{
@@ -780,7 +641,31 @@ function bindAdminUnlock(){
     };
   }
 }
-  
+
+/* =========================================================
+ * [11] 課堂問卷：URL 預選（?module=course&id=...&title=...）
+ * =======================================================*/
+function applyCourseFromQuery(){
+  const q = getQuery();
+  if ((q.module||'').toLowerCase() !== 'course') return;
+
+  window.__COURSE__ = { id: (q.courseId || q.id || ''), title: (q.title || '') };
+
+  const hdr = document.getElementById('courseHeader');
+  if (hdr){
+    const txt = [window.__COURSE__?.id, window.__COURSE__?.title].filter(Boolean).join('｜');
+    hdr.textContent = txt ? `（${txt}）` : '（未指定課程）';
+  }
+  const picker = document.getElementById('coursePicker');
+  if (picker && (window.__COURSE__?.id || window.__COURSE__?.title)) picker.style.display = 'none';
+
+  const idx = (FORM_CONFIG.tabs || []).findIndex(t=> t.kind==='course');
+  if (idx >= 0) switchTab(idx);
+}
+
+/* =========================================================
+ * [12] 課堂問卷：補填課程清單（需端點但不必解鎖）
+ * =======================================================*/
 async function loadCourseListForMakeup(){
   const q = getQuery();
   const hasPreset = (q.module||'').toLowerCase()==='course' && (q.id || q.courseId || q.title);
@@ -809,10 +694,7 @@ async function loadCourseListForMakeup(){
     }
 
     const frag = document.createDocumentFragment();
-    const ph = document.createElement('option');
-    ph.value = '';
-    ph.textContent = '請選擇課程';
-    frag.appendChild(ph);
+    const ph = document.createElement('option'); ph.value=''; ph.textContent='請選擇課程'; frag.appendChild(ph);
 
     data.items.forEach(({id, title, instructor})=>{
       const opt = document.createElement('option');
@@ -839,14 +721,25 @@ async function loadCourseListForMakeup(){
   }
 }
 
-
+/* =========================================================
+ * [13] 初始化流程（順序很重要）
+ * =======================================================*/
+function init(){
+  renderTabs();
+  FORM_CONFIG.tabs.slice(1).forEach(t=>{
+    const el = document.getElementById(t.id);
+    if (el) el.style.display = 'none';
+  });
+  renderAllForms();
+  applyHash();
+  window.addEventListener('hashchange', applyHash);
+}
 document.addEventListener('DOMContentLoaded', () => {
-  init();                      // 生成 UI
-  bindAdminUnlock();           // 金鑰解鎖 + 管理面板顯示/端點管理
-  applyCourseFromQuery();      // 處理 ?module=course&id=...&title=...
-  loadCourseListForMakeup();   // 無預選課程時，載入課程清單
+  init();                    // UI 基礎
+  bindAdminUnlock();         // 解鎖 / 面板 / 端點 / PING / 圖表
+  applyCourseFromQuery();    // 若 URL 帶了課程 → 直接顯示課堂問卷
+  loadCourseListForMakeup(); // 否則從 courselist 補填
 });
-
 </script>
   
 </body>
