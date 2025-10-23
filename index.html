@@ -469,19 +469,62 @@ async function submitByKind(kind){
   }
 }
 
-/* ===== [08] 基本資訊輔助 ===== */
+/* ========== [08] 基本資訊／即時對照名單 ========== */
 function readBasic(){
   profile.employeeId = document.getElementById('employeeId')?.value?.trim() || profile.employeeId;
   profile.fullName   = document.getElementById('fullName')?.value?.trim()   || profile.fullName;
   profile.dept       = document.getElementById('dept')?.value?.trim()       || profile.dept;
   profile.date       = document.getElementById('date')?.value               || profile.date;
-  const badge = document.getElementById('userIdBadge'); if(badge) badge.textContent = profile.employeeId || '未設定';
+  const badge = document.getElementById('userIdBadge');
+  if (badge) badge.textContent = profile.employeeId || '未設定';
+}
+async function resolveEmployeeInstant(){
+  const idEl = document.getElementById('employeeId');
+  const nmEl = document.getElementById('fullName');
+  if (!idEl || !nmEl) return;
+  const employeeId = (idEl.value || '').trim();
+  const fullName   = (nmEl.value || '').trim();
+  if (!employeeId && !fullName) return;
+  if (resolveEmployeeInstant._busy) return;
+  resolveEmployeeInstant._busy = true;
+  try {
+    const endpoint = getEndpoint();
+    const payload = { action:'resolveEmployee', employeeId, fullName, origin: location.origin };
+    const res  = await fetch(endpoint, { method:'POST', body: JSON.stringify(payload) });
+    const data = await res.json().catch(()=> ({}));
+    if (data?.ok && data.match){
+      idEl.value = data.match.employeeId || '';
+      nmEl.value = data.match.fullName   || '';
+      const d = document.getElementById('dept'); if (d) d.value = data.match.dept || '';
+      readBasic();
+    } else if (data?.error === 'AMBIGUOUS_NAME'){
+      toast('姓名重複，請改填「員工編號」。');
+    } else if (data?.error === 'EMP_NOT_FOUND'){
+      toast('找不到這位員工，請確認員工編號或姓名。');
+    } else {
+      toast('查詢失敗（伺服器回傳異常）。');
+    }
+  } catch (e){
+    toast('查詢失敗：' + (e.message || e));
+  } finally {
+    resolveEmployeeInstant._busy = false;
+  }
+}
+function bindInstantResolve(){
+  const idEl = document.getElementById('employeeId');
+  const nmEl = document.getElementById('fullName');
+  idEl?.addEventListener('blur', resolveEmployeeInstant);
+  nmEl?.addEventListener('blur', resolveEmployeeInstant);
+  const fireOnEnter = (ev)=> { if (ev.key === 'Enter') resolveEmployeeInstant(); };
+  idEl?.addEventListener('keyup', fireOnEnter);
+  nmEl?.addEventListener('keyup', fireOnEnter);
 }
 document.getElementById('fillToday')?.addEventListener('click', ()=>{
   const el = document.getElementById('date');
   if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
 });
 
+  
 /* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
   const endpoint = getEndpoint();
@@ -665,9 +708,9 @@ async function loadCourseListForMakeup(){
 }
 
 /* ===== [13] 初始化 ===== */
+/* ========== [13] 初始化 ========== */
 function init(){
   renderTabs();
-  // 先全部隱藏，切頁時再顯示
   (FORM_CONFIG.tabs||[]).forEach((t,i)=>{
     const el = document.getElementById(t.id);
     if (el) el.style.display = (i===0 ? 'block' : 'none');
@@ -679,9 +722,11 @@ function init(){
 document.addEventListener('DOMContentLoaded', () => {
   init();
   bindAdminUnlock();
+  bindInstantResolve();     // ← 別忘了
   applyCourseFromQuery();
   loadCourseListForMakeup();
 });
+  
 </script>
 </body>
 </html>
