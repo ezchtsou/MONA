@@ -509,6 +509,16 @@ async function resolveEmployeeInstant(){
   } finally {
     resolveEmployeeInstant._busy = false;
   }
+  const res = await fetch(endpoint, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'resolveEmployee',
+    employeeId,
+    fullName,
+    origin: location.origin // 可有可無，這支 API 我們沒檢查 origin
+  })
+});
 }
 function bindInstantResolve(){
   const idEl = document.getElementById('employeeId');
