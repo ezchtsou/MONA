@@ -485,17 +485,23 @@ async function resolveEmployeeInstant(source){
   const nmEl = document.getElementById('fullName');
   if (!idEl || !nmEl) return;
 
-  if (resolveEmployeeInstant._filling) return; // 避免回填時再觸發
+  // 若正在回填或忙碌，則略過
+  if (resolveEmployeeInstant._filling || resolveEmployeeInstant._busy) return;
 
-  const employeeId = (idEl.value || '').trim();
+  const employeeId = (idEl.value || '').trim().toUpperCase();  // ← ★轉大寫
   const fullName   = (nmEl.value || '').trim();
 
   // 條件：剛好一個有值（XOR）
   const hasId   = !!employeeId;
   const hasName = !!fullName;
-  if (hasId === hasName) return; // 兩個都有或兩個都沒 → 不查
+  if (hasId === hasName) {    // ← ★若兩個都有或都沒有，直接更新badge後退出
+    readBasic();
+    return;
+  }
 
   try{
+    resolveEmployeeInstant._busy = true;  // ← ★進入查詢鎖
+
     const endpoint = getEndpoint();
     const res = await fetch(endpoint, {
       method:'POST',
@@ -509,14 +515,12 @@ async function resolveEmployeeInstant(source){
     const data = await res.json().catch(()=> ({}));
 
     if (data?.ok && data.match){
-      // 標記「程式正在回填」，避免又觸發 resolve
-      resolveEmployeeInstant._filling = true;
+      resolveEmployeeInstant._filling = true; // ★避免再觸發
       idEl.value = data.match.employeeId || '';
       nmEl.value = data.match.fullName   || '';
       const d = document.getElementById('dept');
       if (d) d.value = data.match.dept || '';
       readBasic();
-      // 下一個 event loop 再解除，確保不會馬上又跑一次
       setTimeout(()=>{ resolveEmployeeInstant._filling = false; }, 0);
     } else if (data?.error === 'AMBIGUOUS_NAME'){
       toast('姓名重複，請改填「員工編號」。');
@@ -527,30 +531,9 @@ async function resolveEmployeeInstant(source){
     }
   } catch(e){
     toast('查詢失敗：' + (e.message || e));
+  } finally {
+    resolveEmployeeInstant._busy = false;   // ← ★查完解除鎖
   }
-}
-
-function bindInstantResolve(){
-  const idEl = document.getElementById('employeeId');
-  const nmEl = document.getElementById('fullName');
-  // 只在 blur 或按 Enter 查（避免頻繁）
-  idEl?.addEventListener('blur', ()=> resolveEmployeeInstant('id'));
-  nmEl?.addEventListener('blur', ()=> resolveEmployeeInstant('name'));
-  idEl?.addEventListener('keyup', (e)=> { if(e.key === 'Enter') resolveEmployeeInstant('id'); });
-  nmEl?.addEventListener('keyup', (e)=> { if(e.key === 'Enter') resolveEmployeeInstant('name'); });
-}
-
-// 可選：提供一鍵清除，方便改查另一位
-function clearIdentity(){
-  const idEl = document.getElementById('employeeId');
-  const nmEl = document.getElementById('fullName');
-  const dEl  = document.getElementById('dept');
-  resolveEmployeeInstant._filling = true;
-  if (idEl) idEl.value = '';
-  if (nmEl) nmEl.value = '';
-  if (dEl)  dEl.value  = '';
-  resolveEmployeeInstant._filling = false;
-  readBasic();
 }
   
 /* ===== [09] 匿名圖表 ===== */
