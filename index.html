@@ -756,7 +756,6 @@ async function loadCourseListForMakeup(){
   }
 }
 
-/* ===== [13] 初始化 ===== */
 /* ========== [13] 初始化 ========== */
 function init(){
   renderTabs();
@@ -767,6 +766,20 @@ function init(){
   renderAllForms();
   applyHash();
   window.addEventListener('hashchange', applyHash);
+
+  // 本地時區安全的「填入今天」
+function fillTodayLocalISO(){
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0,10); // yyyy-mm-dd
+}
+
+document.getElementById('fillToday')?.addEventListener('click', ()=>{
+  const el = document.getElementById('date');
+  if (el) el.value = fillTodayLocalISO();
+  if (typeof readBasic === 'function') readBasic();
+});
+  
 }
 document.addEventListener('DOMContentLoaded', ()=>{
   init();
