@@ -478,25 +478,46 @@ function readBasic(){
   const badge = document.getElementById('userIdBadge');
   if (badge) badge.textContent = profile.employeeId || '未設定';
 }
-async function resolveEmployeeInstant(){
+
+// ★ 只在「剛好一個欄位有值」時才向後端查
+async function resolveEmployeeInstant(source){
   const idEl = document.getElementById('employeeId');
   const nmEl = document.getElementById('fullName');
   if (!idEl || !nmEl) return;
+
+  if (resolveEmployeeInstant._filling) return; // 避免回填時再觸發
+
   const employeeId = (idEl.value || '').trim();
   const fullName   = (nmEl.value || '').trim();
-  if (!employeeId && !fullName) return;
-  if (resolveEmployeeInstant._busy) return;
-  resolveEmployeeInstant._busy = true;
-  try {
+
+  // 條件：剛好一個有值（XOR）
+  const hasId   = !!employeeId;
+  const hasName = !!fullName;
+  if (hasId === hasName) return; // 兩個都有或兩個都沒 → 不查
+
+  try{
     const endpoint = getEndpoint();
-    const payload = { action:'resolveEmployee', employeeId, fullName, origin: location.origin };
-    const res  = await fetch(endpoint, { method:'POST', body: JSON.stringify(payload) });
+    const res = await fetch(endpoint, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        action:'resolveEmployee',
+        employeeId,
+        fullName
+      })
+    });
     const data = await res.json().catch(()=> ({}));
+
     if (data?.ok && data.match){
+      // 標記「程式正在回填」，避免又觸發 resolve
+      resolveEmployeeInstant._filling = true;
       idEl.value = data.match.employeeId || '';
       nmEl.value = data.match.fullName   || '';
-      const d = document.getElementById('dept'); if (d) d.value = data.match.dept || '';
+      const d = document.getElementById('dept');
+      if (d) d.value = data.match.dept || '';
       readBasic();
+      // 下一個 event loop 再解除，確保不會馬上又跑一次
+      setTimeout(()=>{ resolveEmployeeInstant._filling = false; }, 0);
     } else if (data?.error === 'AMBIGUOUS_NAME'){
       toast('姓名重複，請改填「員工編號」。');
     } else if (data?.error === 'EMP_NOT_FOUND'){
@@ -504,36 +525,33 @@ async function resolveEmployeeInstant(){
     } else {
       toast('查詢失敗（伺服器回傳異常）。');
     }
-  } catch (e){
+  } catch(e){
     toast('查詢失敗：' + (e.message || e));
-  } finally {
-    resolveEmployeeInstant._busy = false;
   }
-  const res = await fetch(endpoint, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    action: 'resolveEmployee',
-    employeeId,
-    fullName,
-    origin: location.origin // 可有可無，這支 API 我們沒檢查 origin
-  })
-});
 }
+
 function bindInstantResolve(){
   const idEl = document.getElementById('employeeId');
   const nmEl = document.getElementById('fullName');
-  idEl?.addEventListener('blur', resolveEmployeeInstant);
-  nmEl?.addEventListener('blur', resolveEmployeeInstant);
-  const fireOnEnter = (ev)=> { if (ev.key === 'Enter') resolveEmployeeInstant(); };
-  idEl?.addEventListener('keyup', fireOnEnter);
-  nmEl?.addEventListener('keyup', fireOnEnter);
+  // 只在 blur 或按 Enter 查（避免頻繁）
+  idEl?.addEventListener('blur', ()=> resolveEmployeeInstant('id'));
+  nmEl?.addEventListener('blur', ()=> resolveEmployeeInstant('name'));
+  idEl?.addEventListener('keyup', (e)=> { if(e.key === 'Enter') resolveEmployeeInstant('id'); });
+  nmEl?.addEventListener('keyup', (e)=> { if(e.key === 'Enter') resolveEmployeeInstant('name'); });
 }
-document.getElementById('fillToday')?.addEventListener('click', ()=>{
-  const el = document.getElementById('date');
-  if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
-});
 
+// 可選：提供一鍵清除，方便改查另一位
+function clearIdentity(){
+  const idEl = document.getElementById('employeeId');
+  const nmEl = document.getElementById('fullName');
+  const dEl  = document.getElementById('dept');
+  resolveEmployeeInstant._filling = true;
+  if (idEl) idEl.value = '';
+  if (nmEl) nmEl.value = '';
+  if (dEl)  dEl.value  = '';
+  resolveEmployeeInstant._filling = false;
+  readBasic();
+}
   
 /* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
