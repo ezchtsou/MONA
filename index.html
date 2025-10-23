@@ -134,20 +134,9 @@
   </div>
 
   <!-- ↓↓↓ 解鎖後才會顯示 ↓↓↓ -->
-  <div id="adminPanel" style="display:none">
-    <div class="row">
-      <div>
-        <label>GAS Web App URL（/exec）</label>
-        <input id="gas_url" type="text" readonly />
-        <div class="btns">
-          <button id="gasTestBtn" type="button">測試連線（PING）</button>
-        </div>
-      </div>
-    </div>
-    <!-- 之後的匿名圖表會放在這個面板下 -->
-    <section id="adminCharts" class="card" style="display:none;margin-top:16px">
+  <section id="adminCharts" class="card" style="display:none;margin-top:16px">
   <h3>📈 匿名彙整預覽</h3>
-  <p class="muted">資料來自分析GS輸出的彙整表（僅平均/統計，不含個資）。</p>
+  <p class="muted">輸入管理金鑰後即可查看統計圖表，資料來自分析GS輸出的彙整表（僅平均/統計，不含個資）。</p>
   <div style="display:grid;grid-template-columns:1fr;gap:18px">
     <canvas id="chartWeeklyTrend"></canvas>
     <canvas id="chartSkillAvg"></canvas>
@@ -168,12 +157,10 @@ const ADMIN_SECRET     = 'ADMINKEY'; // 要和後端的 ADMIN_KEY 相同
 const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec';      // ← 直接放正式 /exec
 
 // 單一資料來源：端點管理（所有功能都用這兩個）
-function setEndpoint(url){
-  window.GAS_ENDPOINT = (url || '').trim();
-  if (window.GAS_ENDPOINT) sessionStorage.setItem('gas_endpoint', window.GAS_ENDPOINT);
-}
-function getEndpoint({ requireUnlocked = false } = {}){
-  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
+
+function getEndpoint(){ return DEFAULT_GAS_URL.trim(); }
+
+function setEndpoint(){ /* no-op: endpoint is fixed now */ }
 
   // 1) 先讀 URL ?gas=（允許未解鎖，僅作為執行用，不顯示在 UI）
   const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
@@ -199,23 +186,18 @@ window.toast   = window.toast   || (msg => alert(msg));
  * [03] 與 GAS 溝通（送單一 payload；匿名圖表另見 [09]）
  * =======================================================*/
 async function submitToGAS(payload){
-  let endpoint = getEndpoint({ requireUnlocked: false });
-  if (!endpoint) throw new Error('尚未設定 GAS Web App URL（請到管理設定輸入金鑰並設定 /exec）');
-
+  const endpoint = getEndpoint();
   let res;
   try { res = await fetch(endpoint, { method:'POST', body: JSON.stringify(payload) }); }
-  catch (e) { throw new Error('無法連線到 GAS（網路/CORS）：' + (e.message || '連線失敗')); }
+  catch (e) { throw new Error('無法連線到 GAS：' + (e.message || '連線失敗')); }
 
-  let text;
-  try { text = await res.text(); }
-  catch { throw new Error('無法解析 GAS 回應（read body 失敗）'); }
-
+  const text = await res.text().catch(()=> '');
   try {
-    const data = JSON.parse(text);
+    const data = JSON.parse(text || '{}');
     if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     return data;
   } catch {
-    throw new Error('GAS 非 JSON 回應（可能是舊部署/權限/白名單）：' + String(text).slice(0,200));
+    throw new Error('GAS 非 JSON 回應：' + String(text).slice(0,200));
   }
 }
 
@@ -529,13 +511,17 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
  * [09] 匿名圖表（只讀彙整表；需解鎖）
  * =======================================================*/
 async function fetchAnalytics(names){
-  const endpoint = getEndpoint({ requireUnlocked: true }); // 需解鎖
-  const url = `${endpoint}?action=analytics&names=${encodeURIComponent(names.join(','))}&origin=${encodeURIComponent(location.origin)}`;
+  const endpoint = getEndpoint();
+  const url = `${endpoint}?action=analytics` +
+              `&names=${encodeURIComponent(names.join(','))}` +
+              `&key=${encodeURIComponent(ADMIN_SECRET)}` + // ★ 必帶
+              `&t=${Date.now()}`; // 防快取
   const res = await fetch(url);
   const data = await res.json();
   if (!data?.ok) throw new Error('analytics API 失敗');
   return data.items || {};
 }
+
 function drawLine(canvasId, labels, values, label){
   const el = document.getElementById(canvasId); if (!el) return;
   if (el._chart) el._chart.destroy();
@@ -605,55 +591,25 @@ function bindAdminUnlock(){
   const unlockBtn  = document.getElementById('adminUnlock');
   const keyInput   = document.getElementById('adminKey');
   const adminPanel = document.getElementById('adminPanel');
-  const gasInput   = document.getElementById('gas_url');
-  if (!unlockBtn || !keyInput || !adminPanel || !gasInput) return;
+  if (!unlockBtn || !keyInput || !adminPanel) return;
 
   adminPanel.style.display = 'none';
-  gasInput.value = '';
-  gasInput.setAttribute('readonly','');
 
   const wasUnlocked = sessionStorage.getItem('admin_unlocked') === '1';
-  const remembered  = sessionStorage.getItem('gas_endpoint') || DEFAULT_GAS_URL || '';
-  if (wasUnlocked) {
-    adminPanel.style.display = 'block';
-    gasInput.removeAttribute('readonly');
-    gasInput.value = remembered;
-    setEndpoint(gasInput.value);
-    renderAdminCharts(); // ★ 自動復原時就載圖
-  }
+  if (wasUnlocked) { adminPanel.style.display = 'block'; renderAdminCharts(); }
 
   unlockBtn.addEventListener('click', ()=>{
     const key = (keyInput.value || '').trim();
     if (key !== ADMIN_SECRET){ alert('金鑰錯誤'); return; }
-
-    adminPanel.style.display = 'block';
-    gasInput.removeAttribute('readonly');
-    if (!gasInput.value) gasInput.value = sessionStorage.getItem('gas_endpoint') || DEFAULT_GAS_URL || '';
-    setEndpoint(gasInput.value);
-
     sessionStorage.setItem('admin_unlocked','1');
+    adminPanel.style.display = 'block';
     alert('已解鎖管理功能');
-    renderAdminCharts(); // ★ 解鎖成功後載圖
+    renderAdminCharts();
+    // 重新渲染 tabs，把 Admin 插回來
+    renderTabs(); applyHash();
   });
-
-  gasInput.addEventListener('input', ()=> setEndpoint(gasInput.value) );
-
-  const pingBtn = document.getElementById('gasTestBtn');
-  if (pingBtn) {
-    pingBtn.onclick = async ()=>{
-      let endpoint;
-      try { endpoint = getEndpoint({ requireUnlocked:true }); }
-      catch (e) { alert(e.message || '請先輸入金鑰並設定 GAS URL'); return; }
-      try{
-        const r = await fetch(endpoint + '?get=1');
-        const t = await r.text();
-        alert('PING 回應：\n' + t.slice(0,500));
-      }catch(e){
-        alert('PING 失敗：' + (e.message || e));
-      }
-    };
-  }
 }
+
 
 /* =========================================================
  * [11] 課堂問卷：URL 預選（?module=course&id=...&title=...）
@@ -690,14 +646,14 @@ async function loadCourseListForMakeup(){
 
   picker.style.display = 'grid';
 
-  const endpoint = getEndpoint({ requireUnlocked:false });
+  const endpoint = getEndpoint();
   if (!endpoint){
     selectEl.innerHTML = '<option value="">（請先在管理設定輸入金鑰並設定 GAS /exec）</option>';
     return;
   }
 
   try{
-    const url = `${endpoint}?action=courselist&origin=${encodeURIComponent(location.origin)}`;
+    const url = `${endpoint}?action=courselist&t=${Date.now()}`;
     const res = await fetch(url);
     const data = await res.json();
 
