@@ -165,7 +165,18 @@ function setEndpoint(){ /* no-op */ }
  * =======================================================*/
 function getQuery(){ try { return Object.fromEntries(new URL(location.href).searchParams.entries()); } catch { return {}; } }
 window.profile = window.profile || { employeeId:'', fullName:'', dept:'', date:(new Date()).toISOString().slice(0,10) };
-window.toast   = window.toast   || (msg => alert(msg));
+window.toast = (msg)=>{
+  let t = document.querySelector('.toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.style.display='none', 2000);
+};
 
 /* =========================================================
  * [03] 與 GAS 溝通（送單一 payload；匿名圖表另見 [09]）
@@ -781,10 +792,27 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
 });
   
 }
-document.addEventListener('DOMContentLoaded', ()=>{
+  async function checkGASEndpoint(){
+  try{
+    const url = `${getEndpoint()}?action=ping&t=${Date.now()}`;
+    const res = await fetch(url, { cache:'no-store', mode:'cors' });
+    const data = await res.json();
+    if (!data?.ok) throw new Error('ping not ok');
+    return true;
+  }catch(e){
+    console.warn('GAS 端點 ping 失敗：', e);
+    // 停用即時查詢，避免使用者每打字就出錯
+    resolveEmployeeInstant._cooldownUntil = Date.now() + 60_000; // 1 分鐘
+    toast('後端暫時無法連線，員編/姓名自動對照已暫停。');
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async ()=>{
   init();
   bindAdminUnlock();
-  bindInstantResolve();   // ← 這行一定要在這裡
+  await checkGASEndpoint();       // ← 先做健康檢查
+  bindInstantResolve();           // 再綁自動查詢
   applyCourseFromQuery();
   loadCourseListForMakeup();
 });
