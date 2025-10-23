@@ -51,7 +51,7 @@
       <h2>🔑 基本資訊</h2>
       <div class="row">
         <div>
-          <label>使用者代號（employeeId）</label>
+          <label>員工編號（employeeId）</label>
           <input id="employeeId" type="text" placeholder="例如：9999M0000" />
         </div>
         <div>
@@ -164,7 +164,7 @@
 /* =========================================================
  * [01] 全域設定（Admin 金鑰 / GAS 端點）
  * =======================================================*/
-const ADMIN_SECRET     = 'ADMIN'; // 要和後端的 ADMIN_KEY 相同
+const ADMIN_SECRET     = 'ADMINKEY'; // 要和後端的 ADMIN_KEY 相同
 const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec';      // ← 直接放正式 /exec
 
 // 單一資料來源：端點管理（所有功能都用這兩個）
@@ -466,7 +466,7 @@ function buildPayload(tab){
 }
 function validateTab(tab){
   if (typeof readBasic === 'function') readBasic();
-  if(!profile?.employeeId){ toast('請先於「基本資訊」填寫使用者代號'); switchTab(0); return false; }
+  if(!profile?.employeeId){ toast('請先於「基本資訊」填寫員工編號'); switchTab(0); return false; }
   if (tab.kind === 'messages') {
     const body = (document.getElementById(`${tab.id}-open-0`)?.value || '').trim();
     if(!body){ toast('請輸入意見內容'); return false; }
