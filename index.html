@@ -164,8 +164,8 @@
 /* =========================================================
  * [01] 全域設定（Admin 金鑰 / GAS 端點）
  * =======================================================*/
-const ADMIN_SECRET     = 'ADMIN'; // ← 換密碼改這行
-const DEFAULT_GAS_URL  = '';      // ← 不預先外露；解鎖後再貼
+const ADMIN_SECRET     = 'ADMIN'; // 要和後端的 ADMIN_KEY 相同
+const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec';      // ← 直接放正式 /exec
 
 // 單一資料來源：端點管理（所有功能都用這兩個）
 function setEndpoint(url){
@@ -337,11 +337,15 @@ const FORM_CONFIG = {
  * [05] 分頁 UI（建立標籤、切換、Hash 導航）
  * =======================================================*/
 function renderTabs(){
+  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
+  // 未解鎖就過濾掉管理分頁
+  const visibleTabs = FORM_CONFIG.tabs.filter(t => unlocked ? true : t.kind !== 'admin');
+
   const host = document.getElementById('tabs');
-  const specs = FORM_CONFIG.tabs.map(t=>({id:t.id, name:t.name}));
-  window.__TAB_SPECS = specs;
   host.innerHTML = '';
-  specs.forEach((t,i)=>{
+  window.__TAB_SPECS = visibleTabs.map(t => ({ id:t.id, name:t.name, kind:t.kind }));
+
+  visibleTabs.forEach((t,i)=>{
     const btn = document.createElement('button');
     btn.className = 'tab' + (i===0 ? ' active' : '');
     btn.textContent = t.name;
@@ -349,6 +353,7 @@ function renderTabs(){
     host.appendChild(btn);
   });
 }
+
 function switchTab(index){
   const specs = window.__TAB_SPECS || [];
   const tabs = document.getElementById('tabs').children;
@@ -363,11 +368,14 @@ function switchTab(index){
   if (location.hash !== '#'+h) history.replaceState(null,'','#'+h);
 }
 function applyHash(){
-  const names = FORM_CONFIG.tabs.map(t=>t.kind);
+  const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
+  const names = (window.__TAB_SPECS || []).map(t=>t.kind);
   const map = Object.fromEntries(names.map((n,i)=>[n,i]));
-  const key = (location.hash||'').replace('#','');
+  let key = (location.hash||'').replace('#','');
+  if (!unlocked && key === 'admin') key = ''; // 未解鎖強制回基本資訊
   switchTab(map[key] ?? 0);
 }
+
 
 /* =========================================================
  * [06] 問卷渲染（依 FORM_CONFIG 產生表格/輸入）
