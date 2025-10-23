@@ -497,19 +497,30 @@ function debounce(fn, wait){
 }
 
 // 只在「剛好一個欄位有值」時查；並避免回填時重觸發
+// 只在「剛好一個欄位有值」時查；加入去重 / 冷卻，並避免 CORS 預檢
 async function resolveEmployeeInstant(source){
   const idEl = document.getElementById('employeeId');
   const nmEl = document.getElementById('fullName');
   if (!idEl || !nmEl) return;
 
+  // 回填中就不觸發
   if (resolveEmployeeInstant._filling) return;
+
+  // 冷卻期（之前失敗過，先暫停自動查）
+  if (resolveEmployeeInstant._cooldownUntil && Date.now() < resolveEmployeeInstant._cooldownUntil) return;
 
   const employeeId = (idEl.value || '').trim();
   const fullName   = (nmEl.value || '').trim();
 
+  // XOR：剛好一個有值才查
   const hasId   = !!employeeId;
   const hasName = !!fullName;
-  if (hasId === hasName) return; // 兩個都有或兩個都沒 → 不查
+  if (hasId === hasName) return;
+
+  // 同樣輸入重複就不再送
+  const sig = employeeId + '|' + fullName;
+  if (resolveEmployeeInstant._lastSig === sig) return;
+  resolveEmployeeInstant._lastSig = sig;
 
   const endpoint = getEndpoint && getEndpoint();
   if (!endpoint){
@@ -518,14 +529,16 @@ async function resolveEmployeeInstant(source){
   }
 
   try{
-    console.log('[resolveEmployeeInstant] POST', {source, employeeId, fullName});
+    // 重要：不要設 Content-Type，避免瀏覽器送 OPTIONS 預檢
     const res = await fetch(endpoint, {
       method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ action:'resolveEmployee', employeeId, fullName })
+      body: JSON.stringify({ action:'resolveEmployee', employeeId, fullName }),
+      mode:'cors',
+      cache:'no-store',
+      redirect:'follow'
     });
+
     const data = await res.json().catch(()=> ({}));
-    console.log('[resolveEmployeeInstant] resp', data);
 
     if (data?.ok && data.match){
       resolveEmployeeInstant._filling = true;
@@ -536,15 +549,26 @@ async function resolveEmployeeInstant(source){
       readBasic();
       setTimeout(()=>{ resolveEmployeeInstant._filling = false; }, 0);
     } else if (data?.error === 'AMBIGUOUS_NAME'){
-      toast('姓名重複，請改填「員工編號」。');
+      throttleToast('姓名重複，請改填「員工編號」。');
     } else if (data?.error === 'EMP_NOT_FOUND'){
-      toast('找不到這位員工，請確認員工編號或姓名。');
+      throttleToast('找不到這位員工，請確認員工編號或姓名。');
     } else {
-      toast('查詢失敗（伺服器回傳異常）。');
+      throttleToast('查詢失敗（伺服器回傳異常）。');
     }
   } catch(e){
     console.error(e);
-    toast('查詢失敗：' + (e.message || e));
+    // 失敗進入 10 秒冷卻期，避免狂打 & 狂跳
+    resolveEmployeeInstant._cooldownUntil = Date.now() + 10000;
+    throttleToast('查詢失敗：' + (e.message || e));
+  }
+}
+
+// 10 秒內相同型態的提示只顯示一次
+function throttleToast(msg){
+  const now = Date.now();
+  if (!throttleToast._muteUntil || now > throttleToast._muteUntil){
+    toast(msg);
+    throttleToast._muteUntil = now + 10000;
   }
 }
 
