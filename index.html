@@ -133,21 +133,21 @@
     </div>
   </div>
 
-  <!-- ↓↓↓ 解鎖後才會顯示 ↓↓↓ -->
-  <section id="adminCharts" class="card" style="display:none;margin-top:16px">
-  <h3>📈 匿名彙整預覽</h3>
-  <p class="muted">輸入管理金鑰後即可查看統計圖表，資料來自分析GS輸出的彙整表（僅平均/統計，不含個資）。</p>
-  <div style="display:grid;grid-template-columns:1fr;gap:18px">
-    <canvas id="chartWeeklyTrend"></canvas>
-    <canvas id="chartSkillAvg"></canvas>
-    <canvas id="chartCourseQ1"></canvas>
-  </div>
-</section>
-    <!-- <section id="adminCharts" class="card" style="display:none"> ... </section> -->
-  </div>
-</section>
-    
-  </main>
+  <!-- ★ 必須有 adminPanel，解鎖後才顯示 -->
+    <div id="adminPanel" style="display:none; margin-top:16px">
+      <section id="adminCharts" class="card" style="margin-top:0">
+        <h3>📈 匿名彙整預覽</h3>
+        <div class="muted" style="margin-bottom:8px">資料來源：stats_course / weekly_compare / stats_locate / stats_skill</div>
+        <div style="display:grid;grid-template-columns:1fr;gap:18px">
+          <canvas id="chartCourseOverall"></canvas> <!-- ① 各課程整體滿意度 -->
+          <canvas id="chartWeeklyTrend"></canvas>   <!-- ② 每周問卷折線 -->
+          <canvas id="chartLocateAvg"></canvas>     <!-- ③ 初期各題 -->
+          <canvas id="chartSkillAvg"></canvas>      <!-- ④ 中期各題 -->
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
   
 <script>
 /* =========================================================
@@ -156,11 +156,9 @@
 const ADMIN_SECRET     = 'ADMINKEY'; // 要和後端的 ADMIN_KEY 相同
 const DEFAULT_GAS_URL  = 'https://script.google.com/macros/s/AKfycbylnQs-FaohoCe0wdEw_xQyhLNX0jq_Hcou3Ndxgfq1YdPcs4114PNTp64b619qUpGa/exec';      // ← 直接放正式 /exec
 
-// 單一資料來源：端點管理（所有功能都用這兩個）
-
+// ★ 修正後：固定端點（不要殘留舊程式碼在全域）
 function getEndpoint(){ return DEFAULT_GAS_URL.trim(); }
-
-function setEndpoint(){ /* no-op: endpoint is fixed now */ }
+function setEndpoint(){ /* no-op */ }
 
   // 1) 先讀 URL ?gas=（允許未解鎖，僅作為執行用，不顯示在 UI）
   const qs = (location.search.match(/[?&]gas=([^&]+)/)||[])[1];
@@ -315,12 +313,9 @@ const FORM_CONFIG = {
   ]
 };
 
-/* =========================================================
- * [05] 分頁 UI（建立標籤、切換、Hash 導航）
- * =======================================================*/
+/* ===== [05] 分頁 UI ===== */
 function renderTabs(){
   const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
-  // 未解鎖就過濾掉管理分頁
   const visibleTabs = FORM_CONFIG.tabs.filter(t => unlocked ? true : t.kind !== 'admin');
 
   const host = document.getElementById('tabs');
@@ -335,7 +330,6 @@ function renderTabs(){
     host.appendChild(btn);
   });
 }
-
 function switchTab(index){
   const specs = window.__TAB_SPECS || [];
   const tabs = document.getElementById('tabs').children;
@@ -345,23 +339,21 @@ function switchTab(index){
     if(!sec) return;
     sec.style.display = (i===index) ? 'block' : 'none';
   });
-  const names = FORM_CONFIG.tabs.map(t=>t.kind);
-  const h = names[index] || FORM_CONFIG.tabs[0].kind;
+  const names = specs.map(t=>t.kind);
+  const h = names[index] || 'basic';
   if (location.hash !== '#'+h) history.replaceState(null,'','#'+h);
 }
 function applyHash(){
   const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
-  const names = (window.__TAB_SPECS || []).map(t=>t.kind);
+  const specs = window.__TAB_SPECS || [];
+  const names = specs.map(t=>t.kind);
   const map = Object.fromEntries(names.map((n,i)=>[n,i]));
   let key = (location.hash||'').replace('#','');
-  if (!unlocked && key === 'admin') key = ''; // 未解鎖強制回基本資訊
+  if (!unlocked && key === 'admin') key = '';
   switchTab(map[key] ?? 0);
 }
 
-
-/* =========================================================
- * [06] 問卷渲染（依 FORM_CONFIG 產生表格/輸入）
- * =======================================================*/
+/* ===== [06] 問卷渲染 ===== */
 function renderAllForms(){
   FORM_CONFIG.tabs.forEach(tab=>{
     if(['basic','admin'].includes(tab.kind)) return;
@@ -409,9 +401,7 @@ function renderAllForms(){
   });
 }
 
-/* =========================================================
- * [07] 讀值 / 驗證 / 打包 / 送出
- * =======================================================*/
+/* ===== [07] 讀值/驗證/送出 ===== */
 function readLikert(prefix, count){
   const out = [];
   for(let i=1;i<=count;i++){
@@ -492,9 +482,7 @@ async function submitByKind(kind){
   }
 }
 
-/* =========================================================
- * [08] 基本資訊輔助（填今天 / 顯示使用者ID）
- * =======================================================*/
+/* ===== [08] 基本資訊輔助 ===== */
 function readBasic(){
   profile.employeeId = document.getElementById('employeeId')?.value?.trim() || profile.employeeId;
   profile.fullName   = document.getElementById('fullName')?.value?.trim()   || profile.fullName;
@@ -507,21 +495,15 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
   if(el){ el.value = new Date().toISOString().slice(0,10); readBasic(); }
 });
 
-/* =========================================================
- * [09] 匿名圖表（只讀彙整表；需解鎖）
- * =======================================================*/
+/* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
   const endpoint = getEndpoint();
-  const url = `${endpoint}?action=analytics` +
-              `&names=${encodeURIComponent(names.join(','))}` +
-              `&key=${encodeURIComponent(ADMIN_SECRET)}` + // ★ 必帶
-              `&t=${Date.now()}`; // 防快取
+  const url = `${endpoint}?action=analytics&names=${encodeURIComponent(names.join(','))}&key=${encodeURIComponent(ADMIN_SECRET)}&t=${Date.now()}`;
   const res = await fetch(url);
   const data = await res.json();
   if (!data?.ok) throw new Error('analytics API 失敗');
   return data.items || {};
 }
-
 function drawLine(canvasId, labels, values, label){
   const el = document.getElementById(canvasId); if (!el) return;
   if (el._chart) el._chart.destroy();
@@ -541,13 +523,34 @@ function drawBar(canvasId, labels, values, label){
   });
 }
 async function renderAdminCharts(){
-  const panel = document.getElementById('adminCharts');
+  const panel = document.getElementById('adminPanel');
   if (!panel) return;
   try{
-    const names = ['weekly_compare','stats_skill','stats_course'];
+    const names = ['weekly_compare','stats_skill','stats_course','stats_locate'];
     const items = await fetchAnalytics(names);
 
-    // ① 每周趨勢（Q*_avg 的均值）
+    // ① 各課程整體滿意度（Q1~Q3 平均）
+    const csAll = items.stats_course || [];
+    const byCourse = {};
+    csAll.forEach(r=>{
+      const q = String(r.question || r['question'] || '').toUpperCase();
+      if (!/^Q[1-3]$/.test(q)) return;
+      const cid = String(r.courseId||'').trim();
+      const title = String(r.courseTitle||'').trim();
+      const avg = Number(r.avg || r['avg'] || r['平均 avg'] || 0);
+      if (!cid) return;
+      if (!byCourse[cid]) byCourse[cid] = { title, sum:0, n:0 };
+      byCourse[cid].sum += avg; byCourse[cid].n += 1;
+    });
+    const courseRows = Object.entries(byCourse).map(([cid, v])=>({ id:cid, title:v.title, avg:+(v.sum/(v.n||1)).toFixed(2) }))
+      .sort((a,b)=> b.avg - a.avg);
+    drawBar('chartCourseOverall',
+      courseRows.map(x=> `${x.id} ${x.title}`.trim()),
+      courseRows.map(x=> x.avg),
+      '各課程整體滿意度（Q1~Q3 平均）'
+    );
+
+    // ② 每周問卷整體平均（把 Q*_avg 平均）
     const wk = items.weekly_compare || [];
     const qCols = wk.length ? Object.keys(wk[0]).filter(k=>/^Q\d+_avg$/.test(k)).sort((a,b)=>+a.slice(1)-+b.slice(1)) : [];
     const wkLabels = wk.map(r=> String(r.date||r['date']||''));
@@ -558,35 +561,31 @@ async function renderAdminCharts(){
     });
     drawLine('chartWeeklyTrend', wkLabels, wkSeries, '每周問卷整體平均（每日）');
 
-    // ② skill：各題平均
+    // ③ 初期 locate 各題平均
+    const loc = (items.stats_locate || []).filter(r=> r['題號 question']);
+    drawBar('chartLocateAvg',
+      loc.map(r=> String(r['題號 question'])),
+      loc.map(r=> +Number(r['平均 avg']||0).toFixed(2)),
+      '初期（locate）各題平均'
+    );
+
+    // ④ 中期 skill 各題平均
     const sk = (items.stats_skill || []).filter(r=> r['題號 question']);
     drawBar('chartSkillAvg',
       sk.map(r=> String(r['題號 question'])),
       sk.map(r=> +Number(r['平均 avg']||0).toFixed(2)),
-      '中期技能（skill）各題平均'
-    );
-
-    // ③ course：Q1 Top 8
-    const cs = (items.stats_course || []).filter(r=> String(r.question||r['question']||'').toUpperCase()==='Q1')
-      .sort((a,b)=> Number(b.avg||b['avg']||0) - Number(a.avg||a['avg']||0))
-      .slice(0,8);
-    drawBar('chartCourseQ1',
-      cs.map(r=> `${r.courseId||''} ${r.courseTitle||''}`.trim()),
-      cs.map(r=> +Number(r.avg||r['avg']||0).toFixed(2)),
-      '課堂問卷 Q1 平均（Top 8）'
+      '中期（skill）各題平均'
     );
 
     panel.style.display = 'block';
   }catch(e){
     console.warn('renderAdminCharts() 失敗：', e);
     panel.style.display = 'block';
-    panel.querySelector('div')?.insertAdjacentHTML('afterbegin', `<div class="muted">（載入圖表失敗：${(e.message||e)}）</div>`);
+    document.getElementById('adminCharts')?.insertAdjacentHTML('afterbegin', `<div class="muted">（載入圖表失敗：${(e.message||e)}）</div>`);
   }
 }
 
-/* =========================================================
- * [10] Admin 解鎖（顯示面板 / 設定端點 / PING / 觸發圖表）
- * =======================================================*/
+/* ===== [10] Admin 解鎖 ===== */
 function bindAdminUnlock(){
   const unlockBtn  = document.getElementById('adminUnlock');
   const keyInput   = document.getElementById('adminKey');
@@ -605,19 +604,15 @@ function bindAdminUnlock(){
     adminPanel.style.display = 'block';
     alert('已解鎖管理功能');
     renderAdminCharts();
-    // 重新渲染 tabs，把 Admin 插回來
+    // 重新渲染 tabs，插回 Admin
     renderTabs(); applyHash();
   });
 }
 
-
-/* =========================================================
- * [11] 課堂問卷：URL 預選（?module=course&id=...&title=...）
- * =======================================================*/
+/* ===== [11] 課堂：URL 預選 ===== */
 function applyCourseFromQuery(){
   const q = getQuery();
   if ((q.module||'').toLowerCase() !== 'course') return;
-
   window.__COURSE__ = { id: (q.courseId || q.id || ''), title: (q.title || '') };
 
   const hdr = document.getElementById('courseHeader');
@@ -632,9 +627,7 @@ function applyCourseFromQuery(){
   if (idx >= 0) switchTab(idx);
 }
 
-/* =========================================================
- * [12] 課堂問卷：補填課程清單（需端點但不必解鎖）
- * =======================================================*/
+/* ===== [12] 課程清單補填 ===== */
 async function loadCourseListForMakeup(){
   const q = getQuery();
   const hasPreset = (q.module||'').toLowerCase()==='course' && (q.id || q.courseId || q.title);
@@ -646,14 +639,8 @@ async function loadCourseListForMakeup(){
 
   picker.style.display = 'grid';
 
-  const endpoint = getEndpoint();
-  if (!endpoint){
-    selectEl.innerHTML = '<option value="">（請先在管理設定輸入金鑰並設定 GAS /exec）</option>';
-    return;
-  }
-
   try{
-    const url = `${endpoint}?action=courselist&t=${Date.now()}`;
+    const url = `${getEndpoint()}?action=courselist&t=${Date.now()}`;
     const res = await fetch(url);
     const data = await res.json();
 
@@ -690,27 +677,24 @@ async function loadCourseListForMakeup(){
   }
 }
 
-/* =========================================================
- * [13] 初始化流程（順序很重要）
- * =======================================================*/
+/* ===== [13] 初始化 ===== */
 function init(){
   renderTabs();
-  FORM_CONFIG.tabs.slice(1).forEach(t=>{
+  // 先全部隱藏，切頁時再顯示
+  (FORM_CONFIG.tabs||[]).forEach((t,i)=>{
     const el = document.getElementById(t.id);
-    if (el) el.style.display = 'none';
+    if (el) el.style.display = (i===0 ? 'block' : 'none');
   });
   renderAllForms();
   applyHash();
   window.addEventListener('hashchange', applyHash);
 }
 document.addEventListener('DOMContentLoaded', () => {
-  init();                    // UI 基礎
-  bindAdminUnlock();         // 解鎖 / 面板 / 端點 / PING / 圖表
-  applyCourseFromQuery();    // 若 URL 帶了課程 → 直接顯示課堂問卷
-  loadCourseListForMakeup(); // 否則從 courselist 補填
+  init();
+  bindAdminUnlock();
+  applyCourseFromQuery();
+  loadCourseListForMakeup();
 });
 </script>
-  
 </body>
 </html>
-
