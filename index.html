@@ -67,7 +67,10 @@
         <div>
           <label>今天日期</label>
           <input id="date" type="date" />
-          <div class="btns"><button id="fillToday" type="button">填入今天</button></div>
+          <div class="btns">
+            <button id="fillToday" type="button">填入今天</button>
+            <button id="clearIdentityBtn" type="button">🧹清除資料</button>
+          </div>
         </div>
       </div>
     </section>
@@ -87,14 +90,14 @@
     
 <!-- 🗓 每周問卷 -->
    <section id="tab-6" class="card">
-  <h2>🗓 每周問卷</h2>
+  <h2>🧭 每周問卷</h2>
   <p>請以五點量表作答（1＝非常不同意，5＝非常同意），並完成開放題：</p>
   <div class="form-host"></div>
   <div class="btns"><button class="primary" type="button">送出每周問卷</button></div>
 </section>
     
    <section id="tab-1" class="card">
-  <h2>🩵 初期問卷</h2>
+  <h2>👌 初期問卷</h2>
   <p>請針對以下指標進行評分（1＝非常不同意，5＝非常同意）：</p>
   <div class="form-host"></div>
   <div class="btns"><button class="primary" type="button">送出初期問卷</button></div>
@@ -814,8 +817,11 @@ document.getElementById('fillToday')?.addEventListener('click', ()=>{
   if (el) el.value = fillTodayLocalISO();
   if (typeof readBasic === 'function') readBasic();
 });
-  
+
+document.getElementById('clearIdentityBtn')?.addEventListener('click', clearIdentity);  
+
 }
+  
   async function checkGASEndpoint(){
   try{
     const url = `${getEndpoint()}?action=ping&t=${Date.now()}`;
