@@ -317,20 +317,22 @@ const FORM_CONFIG = {
 /* ===== [05] 分頁 UI ===== */
 function renderTabs(){
   const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
-  const visibleTabs = FORM_CONFIG.tabs.filter(t => unlocked ? true : t.kind !== 'admin');
-
   const host = document.getElementById('tabs');
   host.innerHTML = '';
-  window.__TAB_SPECS = visibleTabs.map(t => ({ id:t.id, name:t.name, kind:t.kind }));
 
-  visibleTabs.forEach((t,i)=>{
+  // 不過濾，全部列出
+  window.__TAB_SPECS = (FORM_CONFIG.tabs||[]).map(t => ({ id:t.id, name:t.name, kind:t.kind }));
+
+  window.__TAB_SPECS.forEach((t,i)=>{
     const btn = document.createElement('button');
     btn.className = 'tab' + (i===0 ? ' active' : '');
-    btn.textContent = t.name;
+    // 未解鎖時在標籤上提示（可選）
+    btn.textContent = t.name + (t.kind==='admin' && !unlocked ? '（需金鑰）' : '');
     btn.addEventListener('click', ()=> switchTab(i));
     host.appendChild(btn);
   });
 }
+  
 function switchTab(index){
   const specs = window.__TAB_SPECS || [];
   const tabs = document.getElementById('tabs').children;
@@ -350,7 +352,6 @@ function applyHash(){
   const names = specs.map(t=>t.kind);
   const map = Object.fromEntries(names.map((n,i)=>[n,i]));
   let key = (location.hash||'').replace('#','');
-  if (!unlocked && key === 'admin') key = '';
   switchTab(map[key] ?? 0);
 }
 
