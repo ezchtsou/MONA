@@ -721,15 +721,15 @@ async function fetchRoster(){
   }
 }
 
-// 若已建立過就不重建
-// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋（不再鎖定控制項） ===
+// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋（不鎖控制項） ===
 async function ensureGrow360RateePicker(){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
   if (!tab) return;
   const sec = document.getElementById(tab.id);
   if (!sec) return;
 
-  if (sec.querySelector('.g360-ratee-picker')) return; // 已建立就不重複
+  // 已建立就不重複
+  if (sec.querySelector('.g360-ratee-picker')) return;
 
   const host = sec.querySelector('.form-host');
   if (!host) return;
@@ -752,29 +752,7 @@ async function ensureGrow360RateePicker(){
   `;
   host.prepend(box);
 
-  // 名冊載入與渲染
-  let roster = await fetchRoster();
-  const sel     = box.querySelector('#g360RateeSelect');
-  const filter  = box.querySelector('#g360RateeFilter');
-  const reload  = box.querySelector('#g360ReloadRoster');
-
-  function renderOptions(keyword=''){
-    const kw = String(keyword||'').trim().toLowerCase();
-    const items = (roster||[]).filter(p =>
-      !kw ||
-      (p.employeeId||'').toLowerCase().includes(kw) ||
-      (p.fullName||'').toLowerCase().includes(kw)
-    );
-    const opts = [`<option value="">請選擇要評估的對象</option>`]
-      .concat(items.map(p =>
-        `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
-    sel.innerHTML = opts.join('');
-
-    // 若 keyword 精準命中員編，自動選取
-    const exact = (roster||[]).find(p => (p.employeeId||'').toUpperCase() === keyword.toUpperCase());
-    if (exact) sel.value = exact.employeeId;
-  }
-    // 名冊載入與渲染
+  // 名冊載入與渲染（✅ 只宣告一次）
   let roster = await fetchRoster();
   const sel     = box.querySelector('#g360RateeSelect');
   const filter  = box.querySelector('#g360RateeFilter');
@@ -783,6 +761,7 @@ async function ensureGrow360RateePicker(){
   function renderOptions(keyword=''){
     const kw = String(keyword||'').trim();
     const kwLower = kw.toLowerCase();
+
     const items = (roster||[]).filter(p =>
       !kwLower ||
       (p.employeeId||'').toLowerCase().includes(kwLower) ||
@@ -812,14 +791,13 @@ async function ensureGrow360RateePicker(){
   filter.addEventListener('keyup', (e)=>{
     if (e.key === 'Enter'){
       renderOptions(filter.value);
-      // 若仍沒有值，預設把下拉選成「使用你的輸入」
       if (!sel.value && filter.value.trim()){
         sel.value = filter.value.trim();
       }
     }
   });
 
-  // 重新載入
+  // 重新載入名冊
   reload.addEventListener('click', async ()=>{
     reload.disabled = true;
     reload.textContent = '載入中…';
@@ -832,7 +810,7 @@ async function ensureGrow360RateePicker(){
     reload.disabled = false;
   });
 
-  // UX小幫手：如果目前角色是 self，但使用者去點「評估對象」輸入/下拉，就自動把角色切到 peer 方便他填
+  // UX：如果目前角色是 self，但使用者去點選評估對象輸入/下拉，就把角色切到 peer 方便填外評
   const roleSel = document.getElementById(`${tab.id}-extra-role`);
   function ensureNonSelfWhenTyping(){
     if (!roleSel) return;
@@ -844,6 +822,7 @@ async function ensureGrow360RateePicker(){
   // 初始時若有自己的員編，幫忙預渲染一次（只是讓列表靠近該員）
   if (profile?.employeeId) renderOptions(profile.employeeId);
 }
+
 /* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
   const endpoint = getEndpoint();
