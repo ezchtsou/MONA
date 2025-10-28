@@ -718,7 +718,6 @@ async function fetchRoster(){
 }
 
 // === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
-// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
 async function ensureGrow360RateePicker(){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
   if (!tab) return;
@@ -726,12 +725,18 @@ async function ensureGrow360RateePicker(){
   if (!sec) return;
 
   // 若已建立過就不重建
-  if (sec.querySelector('.g360-ratee-picker')) return;
+// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋（不再鎖定控制項） ===
+async function ensureGrow360RateePicker(){
+  const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
+  if (!tab) return;
+  const sec = document.getElementById(tab.id);
+  if (!sec) return;
+
+  if (sec.querySelector('.g360-ratee-picker')) return; // 已建立就不重複
 
   const host = sec.querySelector('.form-host');
   if (!host) return;
 
-  // 容器
   const box = document.createElement('div');
   box.className = 'g360-ratee-picker';
   box.style.marginBottom = '12px';
@@ -744,13 +749,14 @@ async function ensureGrow360RateePicker(){
     <select id="g360RateeSelect" style="margin-top:8px">
       <option value="">請選擇要評估的對象</option>
     </select>
-    <div class="muted" style="margin-top:4px">（自評時可不選，系統會自動以你的員編為對象）</div>
+    <div class="muted" style="margin-top:4px">
+      小提醒：若「角色」選自評，系統會忽略這個選擇並以你的員編為對象。
+    </div>
   `;
   host.prepend(box);
 
-  // 載名冊
+  // 名冊載入與渲染
   let roster = await fetchRoster();
-
   const sel     = box.querySelector('#g360RateeSelect');
   const filter  = box.querySelector('#g360RateeFilter');
   const reload  = box.querySelector('#g360ReloadRoster');
@@ -763,23 +769,21 @@ async function ensureGrow360RateePicker(){
       (p.fullName||'').toLowerCase().includes(kw)
     );
     const opts = [`<option value="">請選擇要評估的對象</option>`]
-      .concat(items.map(p => `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
+      .concat(items.map(p =>
+        `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
     sel.innerHTML = opts.join('');
 
-    // 若 keyword 為精準員編，直接選取
+    // 若 keyword 精準命中員編，自動選取
     const exact = (roster||[]).find(p => (p.employeeId||'').toUpperCase() === keyword.toUpperCase());
     if (exact) sel.value = exact.employeeId;
   }
-
   renderOptions('');
 
-  // 即時篩選；Enter 時若精準匹配就直接選取
+  // 即時篩選＋Enter 強制重繪
   filter.addEventListener('input', ()=> renderOptions(filter.value));
-  filter.addEventListener('keyup', (e)=>{
-    if (e.key === 'Enter') renderOptions(filter.value);
-  });
+  filter.addEventListener('keyup', (e)=>{ if (e.key === 'Enter') renderOptions(filter.value); });
 
-  // 重新載入名冊（有反應＆提示筆數）
+  // 重新載入
   reload.addEventListener('click', async ()=>{
     reload.disabled = true;
     reload.textContent = '載入中…';
@@ -792,25 +796,18 @@ async function ensureGrow360RateePicker(){
     reload.disabled = false;
   });
 
-  // 角色切換：自評→停用下拉；主管/同事→啟用下拉
+  // UX小幫手：如果目前角色是 self，但使用者去點「評估對象」輸入/下拉，就自動把角色切到 peer 方便他填
   const roleSel = document.getElementById(`${tab.id}-extra-role`);
-  function applyRoleLock(){
-    const role = roleSel?.value || 'self';
-    const disabled = (role === 'self');
-    sel.disabled = disabled;
-    filter.disabled = disabled;
+  function ensureNonSelfWhenTyping(){
+    if (!roleSel) return;
+    if (roleSel.value === 'self') roleSel.value = 'peer';
   }
-  if (roleSel){
-    roleSel.addEventListener('change', applyRoleLock);
-    applyRoleLock();
-  }
+  filter.addEventListener('focus', ensureNonSelfWhenTyping);
+  sel.addEventListener('focus', ensureNonSelfWhenTyping);
 
-  // 若使用者在「基本資訊」已輸入員編，且非 self，幫忙快速定位（僅預選，不強制）
-  if (profile?.employeeId){
-    renderOptions(profile.employeeId);
-  }
+  // 初始時若有自己的員編，幫忙預渲染一次（只是讓列表靠近該員）
+  if (profile?.employeeId) renderOptions(profile.employeeId);
 }
-  
 /* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
   const endpoint = getEndpoint();
