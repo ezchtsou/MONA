@@ -293,17 +293,16 @@ const FORM_CONFIG = {
   ],
   opens:['請列出該員工表現最優秀的三個面向。','請列出該員工最需要改進的三個部分或建議其成長方向。'],
   extras:[
-    { key:'role',   label:'角色', type:'select', required:true,
-      options:[
-        {value:'self',    label:'自評（預設）'},
-        {value:'manager', label:'直屬主管'},
-        {value:'peer',    label:'同事'},
-        {value:'mentor',  label:'導師'}
-      ],
-      default:'self'
-    },
-    { key:'rateeId',label:'評估對象（employeeId）', required:true }
-  ]
+  { key:'role', label:'角色', type:'select', required:true,
+    options:[
+      {value:'self',    label:'自評（預設）'},
+      {value:'manager', label:'直屬主管'},
+      {value:'peer',    label:'同事'},
+      {value:'mentor',  label:'導師'}
+    ],
+    default:'self'
+  }
+]
 },
 
     { id:'tab-4', name:'意見反映', kind:'messages',
@@ -401,6 +400,19 @@ function renderAllForms(){
     const btn = sec.querySelector('.btns .primary');
     if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }
   });
+// 在 renderAllForms() 末端「綁定送出按鈕」附近加入：
+if (tab.kind === 'grow360') {
+  const btns = sec.querySelector('.btns');
+  if (btns && !btns.querySelector('.continue')) {
+    const cont = document.createElement('button');
+    cont.type = 'button';
+    cont.className = 'continue';
+    cont.textContent = '送出並繼續';
+    cont.style.marginLeft = '8px';
+    cont.addEventListener('click', ()=> submitByKind('grow360', { continue: true }));
+    btns.appendChild(cont);
+  }
+}
 }
 
 /* ===== [07] 讀值/驗證/送出 ===== */
@@ -436,7 +448,24 @@ function buildPayload(tab){
     extras.courseId    = extras.courseId    || c.id    || '';
     extras.courseTitle = extras.courseTitle || c.title || '';
   }
-  return { ...base, scores, opens, extras };
+if (tab.kind === 'grow360') {
+  // 角色預設 self
+  if (!extras.role) extras.role = 'self';
+
+  // rateeId 來源優先序：
+  // 1) 若 role=self → 直接用自己的 employeeId
+  // 2) 否則讀下拉 #g360RateeSelect 的 value
+  // 3) 若仍空，最後才用舊欄位（兼容）
+  const pick = document.getElementById('g360RateeSelect');
+  const pickVal = pick ? String(pick.value||'').trim().toUpperCase() : '';
+
+  if (extras.role === 'self') {
+    extras.rateeId = profile.employeeId || pickVal || extras.rateeId || '';
+  } else {
+    extras.rateeId = pickVal || extras.rateeId || '';
+  }
+}
+   return { ...base, scores, opens, extras };
 }
 function validateTab(tab){
   if (typeof readBasic === 'function') readBasic();
@@ -462,26 +491,74 @@ function validateTab(tab){
       if (!v) { toast(`${ex.label} 為必填`); return false; }
     }
   }
+if (tab.kind === 'grow360') {
+  const role = document.getElementById(`${tab.id}-extra-role`)?.value || 'self';
+  const pickVal = document.getElementById('g360RateeSelect')?.value || '';
+  if (role !== 'self' && !pickVal) {
+    toast('請先從下拉選單選擇「評估對象」');
+    return false;
+  }
+}
   return true;
 }
-async function submitByKind(kind){
+async function submitByKind(kind, opts={}){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind===kind);
   if(!tab) return;
   if(!validateTab(tab)) return;
+
   const payload = buildPayload(tab);
   const btn = document.querySelector(`#${tab.id} .btns .primary`);
+  const contBtn = document.querySelector(`#${tab.id} .btns .continue`);
   const old = btn?.textContent;
-  if(btn){ btn.disabled=true; btn.textContent='傳送中…'; }
+
+  if(btn) { btn.disabled = true; btn.textContent = '傳送中…'; }
+  if(contBtn) contBtn.disabled = true;
+
   try{
     await submitToGAS(payload);
-    if(btn){ btn.textContent='✔ 已送出'; }
     toast(`${tab.name} 已送出`);
-    switchTab(0);
+
+    if (opts.continue && tab.kind === 'grow360') {
+      // ✅ 繼續模式：不跳分頁，只清空題目/開放題，保留 role 與 ratee 選單（你可視需要清空 ratee）
+      resetGrow360FormFields();
+      if(btn){ btn.disabled=false; btn.textContent=old || '送出'; }
+      if(contBtn) contBtn.disabled=false;
+    } else {
+      if(btn){ btn.textContent='✔ 已送出'; }
+      switchTab(0); // 原行為
+    }
   }catch(e){
     console.error(e);
     if(btn){ btn.disabled=false; btn.textContent=old; }
+    if(contBtn) contBtn.disabled=false;
     toast('送出失敗：'+e.message);
   }
+}
+
+// 清空 grow360 的 1) 單選題 2) 開放題（保留基本資料與角色、評估對象）
+function resetGrow360FormFields(){
+  const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
+  if (!tab) return;
+  const sec = document.getElementById(tab.id);
+  if (!sec) return;
+
+  // 清空題目
+  if (Array.isArray(tab.likertTexts)) {
+    for (let i=1; i<=tab.likertTexts.length; i++){
+      const n = `${tab.prefix}${i}`;
+      const r = sec.querySelectorAll(`input[name='${n}']`);
+      r.forEach(x=> x.checked = false);
+    }
+  }
+  // 清空開放題
+  if (Array.isArray(tab.opens)) {
+    tab.opens.forEach((_,i)=>{
+      const ta = sec.querySelector(`#${tab.id}-open-${i}`);
+      if (ta) ta.value = '';
+    });
+  }
+  // 角色 & 下拉保持不變；若你想每次都要求重新挑對象，就解註下行：
+  // const sel = sec.querySelector('#g360RateeSelect'); if (sel) sel.value = '';
 }
 
 // ========== [08] 基本資訊／即時對照名單（加強版） ==========
@@ -613,6 +690,68 @@ function clearIdentity(){
   readBasic();
 }
 
+// === 讀名冊，回傳 [{employeeId, fullName, dept}, ...] ===
+async function fetchRoster(){
+  const url = `${getEndpoint()}?action=roster&t=${Date.now()}`;
+  const res = await fetch(url, { cache:'no-store', mode:'cors' });
+  const data = await res.json().catch(()=> ({}));
+  return (data && data.ok && Array.isArray(data.items)) ? data.items : [];
+}
+
+// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
+async function ensureGrow360RateePicker(){
+  const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
+  if (!tab) return;
+  const sec = document.getElementById(tab.id);
+  if (!sec) return;
+
+  // 若已建立過就不重建
+  if (sec.querySelector('.g360-ratee-picker')) return;
+
+  const host = sec.querySelector('.form-host');
+  if (!host) return;
+
+  // 容器
+  const box = document.createElement('div');
+  box.className = 'g360-ratee-picker';
+  box.style.marginBottom = '12px';
+  box.innerHTML = `
+    <label>評估對象（從名冊選）</label>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center">
+      <input id="g360RateeFilter" type="text" placeholder="輸入姓名或員編快速篩選…" />
+      <button id="g360ReloadRoster" type="button">重新載入名冊</button>
+    </div>
+    <select id="g360RateeSelect" style="margin-top:8px">
+      <option value="">請選擇要評估的對象</option>
+    </select>
+    <div class="muted" style="margin-top:4px">（自評時可不選，系統會自動以你的員編為對象）</div>
+  `;
+  host.prepend(box);
+
+  // 載名冊 + 綁定濾搜尋
+  let roster = await fetchRoster();
+  const sel  = box.querySelector('#g360RateeSelect');
+  const filter = box.querySelector('#g360RateeFilter');
+  const reload = box.querySelector('#g360ReloadRoster');
+
+  function renderOptions(keyword=''){
+    const kw = String(keyword||'').trim().toLowerCase();
+    const opts = [`<option value="">請選擇要評估的對象</option>`]
+      .concat(roster
+        .filter(p => !kw || p.employeeId.toLowerCase().includes(kw) || p.fullName.toLowerCase().includes(kw))
+        .map(p => `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
+    sel.innerHTML = opts.join('');
+  }
+  renderOptions();
+
+  filter.addEventListener('input', ()=> renderOptions(filter.value));
+  reload.addEventListener('click', async ()=>{
+    roster = await fetchRoster();
+    renderOptions(filter.value);
+    toast('名冊已更新');
+  });
+}
+  
 /* ===== [09] 匿名圖表 ===== */
 async function fetchAnalytics(names){
   const endpoint = getEndpoint();
@@ -846,6 +985,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   bindInstantResolve();           // 再綁自動查詢
   applyCourseFromQuery();
   loadCourseListForMakeup();
+  ensureGrow360RateePicker();   // ← 新增
 });
   
 </script>
