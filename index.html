@@ -717,14 +717,7 @@ async function fetchRoster(){
   }
 }
 
-// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
-async function ensureGrow360RateePicker(){
-  const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
-  if (!tab) return;
-  const sec = document.getElementById(tab.id);
-  if (!sec) return;
-
-  // 若已建立過就不重建
+// 若已建立過就不重建
 // === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋（不再鎖定控制項） ===
 async function ensureGrow360RateePicker(){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
