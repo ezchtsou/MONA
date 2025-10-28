@@ -457,20 +457,18 @@ function buildPayload(tab){
     extras.courseTitle = extras.courseTitle || c.title || '';
   }
 if (tab.kind === 'grow360') {
-  // 角色預設 self
   if (!extras.role) extras.role = 'self';
 
-  // rateeId 來源優先序：
-  // 1) 若 role=self → 直接用自己的 employeeId
-  // 2) 否則讀下拉 #g360RateeSelect 的 value
-  // 3) 若仍空，最後才用舊欄位（兼容）
   const pick = document.getElementById('g360RateeSelect');
   const pickVal = pick ? String(pick.value||'').trim().toUpperCase() : '';
 
+  const filter = document.getElementById('g360RateeFilter');
+  const typed  = filter ? String(filter.value||'').trim().toUpperCase() : '';
+
   if (extras.role === 'self') {
-    extras.rateeId = profile.employeeId || pickVal || extras.rateeId || '';
+    extras.rateeId = profile.employeeId || pickVal || typed || extras.rateeId || '';
   } else {
-    extras.rateeId = pickVal || extras.rateeId || '';
+    extras.rateeId = pickVal || typed || extras.rateeId || '';
   }
 }
    return { ...base, scores, opens, extras };
@@ -585,7 +583,6 @@ function debounce(fn, wait){
   return (...args)=>{ clearTimeout(t); t = setTimeout(()=> fn.apply(null,args), wait); };
 }
 
-// 只在「剛好一個欄位有值」時查；並避免回填時重觸發
 // 只在「剛好一個欄位有值」時查；加入去重 / 冷卻，並避免 CORS 預檢
 async function resolveEmployeeInstant(source){
   const idEl = document.getElementById('employeeId');
@@ -699,20 +696,27 @@ function clearIdentity(){
 }
 
 // === 讀名冊，回傳 [{employeeId, fullName, dept}, ...] ===
-// === 讀名冊，回傳 [{employeeId, fullName, dept}, ...] ===
 async function fetchRoster(){
-  const url = `${getEndpoint()}?action=roster&t=${Date.now()}`;
+  const url = `${getEndpoint()}?action=roster&key=${encodeURIComponent(ADMIN_SECRET)}&t=${Date.now()}`;
   try {
     const res  = await fetch(url, { cache:'no-store', mode:'cors' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+
     if (!data?.ok || !Array.isArray(data.items)) throw new Error('invalid payload');
-    // 緩存一份，供其它地方備援
-    window.__ROSTER__ = data.items;
-    return data.items;
+
+    // 後端欄位可能是 employee_id / name / department，這裡做一次映射
+    const mapped = data.items.map(r => ({
+      employeeId: r.employeeId || r.employee_id || r.id || '',
+      fullName:   r.fullName   || r.name       || r.full_name || '',
+      dept:       r.dept       || r.department || r.unit      || ''
+    })).filter(p => p.employeeId || p.fullName);
+
+    window.__ROSTER__ = mapped;     // 快取
+    return mapped;
   } catch (e) {
     console.warn('fetchRoster() 失敗：', e);
-    toast('名冊讀取失敗，稍後再試');
+    toast('名冊讀取失敗，暫用快取或手動輸入');
     return Array.isArray(window.__ROSTER__) ? window.__ROSTER__ : [];
   }
 }
@@ -770,11 +774,50 @@ async function ensureGrow360RateePicker(){
     const exact = (roster||[]).find(p => (p.employeeId||'').toUpperCase() === keyword.toUpperCase());
     if (exact) sel.value = exact.employeeId;
   }
+    // 名冊載入與渲染
+  let roster = await fetchRoster();
+  const sel     = box.querySelector('#g360RateeSelect');
+  const filter  = box.querySelector('#g360RateeFilter');
+  const reload  = box.querySelector('#g360ReloadRoster');
+
+  function renderOptions(keyword=''){
+    const kw = String(keyword||'').trim();
+    const kwLower = kw.toLowerCase();
+    const items = (roster||[]).filter(p =>
+      !kwLower ||
+      (p.employeeId||'').toLowerCase().includes(kwLower) ||
+      (p.fullName||'').toLowerCase().includes(kwLower)
+    );
+
+    const opts = [`<option value="">請選擇要評估的對象</option>`]
+      .concat(items.map(p =>
+        `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
+
+    // 沒命中任何人 → 提供「直接使用你的輸入」的臨時選項
+    if (kw && items.length === 0){
+      opts.push(`<option value="${kw}">使用「${kw}」（未在名冊）</option>`);
+    }
+
+    sel.innerHTML = opts.join('');
+
+    // 精準員編命中就自動選
+    const exact = (roster||[]).find(p => (p.employeeId||'').toUpperCase() === kw.toUpperCase());
+    if (exact) sel.value = exact.employeeId;
+  }
+
   renderOptions('');
 
-  // 即時篩選＋Enter 強制重繪
+  // 即時篩選＋Enter 強制套用
   filter.addEventListener('input', ()=> renderOptions(filter.value));
-  filter.addEventListener('keyup', (e)=>{ if (e.key === 'Enter') renderOptions(filter.value); });
+  filter.addEventListener('keyup', (e)=>{
+    if (e.key === 'Enter'){
+      renderOptions(filter.value);
+      // 若仍沒有值，預設把下拉選成「使用你的輸入」
+      if (!sel.value && filter.value.trim()){
+        sel.value = filter.value.trim();
+      }
+    }
+  });
 
   // 重新載入
   reload.addEventListener('click', async ()=>{
