@@ -524,13 +524,21 @@ async function submitByKind(kind, opts={}){
     toast(`${tab.name} 已送出`);
 
     if (opts.continue && tab.kind === 'grow360') {
-      // ✅ 繼續模式：不跳分頁，只清空題目/開放題，保留 role 與 ratee 選單（你可視需要清空 ratee）
-      resetGrow360FormFields();
-      if(btn){ btn.disabled=false; btn.textContent=old || '送出'; }
-      if(contBtn) contBtn.disabled=false;
-    } else {
-      if(btn){ btn.textContent='✔ 已送出'; }
-      switchTab(0); // 原行為
+  // 1) 連續填寫模式：留在頁面，清空題目與開放題
+  resetGrow360FormFields();
+  if (btn)     { btn.disabled = false; btn.textContent = old || '送出'; }
+  if (contBtn) { contBtn.disabled = false; }
+} else if (tab.kind === 'grow360') {
+  // 2) 一般送出（非連續）：也留在本頁，不跳回基本資訊
+  if (btn) { btn.textContent = '✔ 已送出'; btn.disabled = false; }
+  if (contBtn) contBtn.disabled = false;
+  // 視需要保留或清空題目：若想清空請解開下一行
+  // resetGrow360FormFields();
+} else {
+  // 3) 其他模組維持原行為：送出後回基本資訊頁
+  if (btn) { btn.textContent = '✔ 已送出'; }
+  switchTab(0);
+}
     }
   }catch(e){
     console.error(e);
