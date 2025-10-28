@@ -404,21 +404,7 @@ function renderAllForms(){
 
     // 綁定主要送出
     const btn = sec.querySelector('.btns .primary');
-    if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }
-
-    // 只有 grow360 加「送出並繼續」按鈕
-    if (tab.kind === 'grow360') {
-      const btns = sec.querySelector('.btns');
-      if (btns && !btns.querySelector('.continue')) {
-        const cont = document.createElement('button');
-        cont.type = 'button';
-        cont.className = 'continue';
-        cont.textContent = '送出並繼續';
-        cont.style.marginLeft = '8px';
-        cont.addEventListener('click', ()=> submitByKind('grow360', { continue: true }));
-        btns.appendChild(cont);
-      }
-    }
+    if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }    
   });
 }
   
@@ -506,72 +492,76 @@ if (tab.kind === 'grow360') {
 }
   return true;
 }
-async function submitByKind(kind, opts={}){
+async function submitByKind(kind, opts={}) {
   const tab = FORM_CONFIG.tabs.find(t=> t.kind===kind);
   if(!tab) return;
   if(!validateTab(tab)) return;
 
   const payload = buildPayload(tab);
   const btn = document.querySelector(`#${tab.id} .btns .primary`);
-  const contBtn = document.querySelector(`#${tab.id} .btns .continue`);
   const old = btn?.textContent;
 
-  if(btn) { btn.disabled = true; btn.textContent = '傳送中…'; }
-  if(contBtn) contBtn.disabled = true;
+  if (btn) { btn.disabled = true; btn.textContent = '傳送中…'; }
 
-  try{
+  try {
     await submitToGAS(payload);
     toast(`${tab.name} 已送出`);
 
-    if (opts.continue && tab.kind === 'grow360') {
-  // 1) 連續填寫模式：留在頁面，清空題目與開放題
-  resetGrow360FormFields();
-  if (btn)     { btn.disabled = false; btn.textContent = old || '送出'; }
-  if (contBtn) { contBtn.disabled = false; }
-} else if (tab.kind === 'grow360') {
-  // 2) 一般送出（非連續）：也留在本頁，不跳回基本資訊
-  if (btn) { btn.textContent = '✔ 已送出'; btn.disabled = false; }
-  if (contBtn) contBtn.disabled = false;
-  // 視需要保留或清空題目：若想清空請解開下一行
-  // resetGrow360FormFields();
-} else {
-  // 3) 其他模組維持原行為：送出後回基本資訊頁
-  if (btn) { btn.textContent = '✔ 已送出'; }
-  switchTab(0);
-}
+    if (tab.kind === 'grow360') {
+      // ✅ 停留在本頁；清空題目與開放題；保留角色
+      // 角色≠self 時，同步清空評估對象（下拉與輸入框），讓你能直接選下一位
+      resetGrow360FormFields({ clearRatee: true });
+
+      if (btn) { btn.disabled = false; btn.textContent = old || '送出此評估'; }
+      return; // 不跳頁
     }
-  }catch(e){
+
+    // 其他模組維持送出後回基本資訊
+    if (btn) { btn.textContent = '✔ 已送出'; }
+    switchTab(0);
+
+  } catch (e) {
     console.error(e);
-    if(btn){ btn.disabled=false; btn.textContent=old; }
-    if(contBtn) contBtn.disabled=false;
-    toast('送出失敗：'+e.message);
+    if (btn) { btn.disabled = false; btn.textContent = old || '送出此評估'; }
+    toast('送出失敗：' + e.message);
   }
 }
 
 // 清空 grow360 的 1) 單選題 2) 開放題（保留基本資料與角色、評估對象）
-function resetGrow360FormFields(){
+function resetGrow360FormFields(opts = {}) {
+  const { clearRatee = false } = opts;
   const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
   if (!tab) return;
   const sec = document.getElementById(tab.id);
   if (!sec) return;
 
-  // 清空題目
+  // 1) 清空 5 點量表
   if (Array.isArray(tab.likertTexts)) {
     for (let i=1; i<=tab.likertTexts.length; i++){
       const n = `${tab.prefix}${i}`;
-      const r = sec.querySelectorAll(`input[name='${n}']`);
-      r.forEach(x=> x.checked = false);
+      sec.querySelectorAll(`input[name='${n}']`).forEach(x=> x.checked = false);
     }
   }
-  // 清空開放題
+
+  // 2) 清空開放題
   if (Array.isArray(tab.opens)) {
     tab.opens.forEach((_,i)=>{
       const ta = sec.querySelector(`#${tab.id}-open-${i}`);
       if (ta) ta.value = '';
     });
   }
-  // 角色 & 下拉保持不變；若你想每次都要求重新挑對象，就解註下行：
-  // const sel = sec.querySelector('#g360RateeSelect'); if (sel) sel.value = '';
+
+  // 3) 角色保留；必要時清空評估對象（僅當角色≠self）
+  if (clearRatee) {
+    const roleSel = document.getElementById(`${tab.id}-extra-role`);
+    const isSelf  = (roleSel?.value || 'self') === 'self';
+    if (!isSelf) {
+      const sel = sec.querySelector('#g360RateeSelect');
+      const filter = sec.querySelector('#g360RateeFilter');
+      if (sel) sel.value = '';
+      if (filter) filter.value = '';
+    }
+  }
 }
 
 // ========== [08] 基本資訊／即時對照名單（加強版） ==========
