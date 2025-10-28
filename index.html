@@ -98,7 +98,7 @@
       <tr>
         <td>📘 課堂問卷</td>
         <td>單堂課滿意度與重點回饋。</td>
-        <td>參與該堂課的學員</td>
+        <td>堂課學員</td>
         <td>每堂課一次</td>
         <td> 1 分鐘以內</td>
         <td>下課後立刻填寫</td>
@@ -416,10 +416,17 @@ function switchTab(index){
     if(!sec) return;
     sec.style.display = (i===index) ? 'block' : 'none';
   });
+
+  // ★ 只有在基本資訊分頁時顯示說明表格
   const names = specs.map(t=>t.kind);
+  const isBasic = (names[index] || 'basic') === 'basic';
+  const guide = document.getElementById('tab-0-guide');
+  if (guide) guide.style.display = isBasic ? 'block' : 'none';
+
   const h = names[index] || 'basic';
   if (location.hash !== '#'+h) history.replaceState(null,'','#'+h);
 }
+
 function applyHash(){
   const unlocked = sessionStorage.getItem('admin_unlocked') === '1';
   const specs = window.__TAB_SPECS || [];
@@ -1085,6 +1092,11 @@ function init(){
     const el = document.getElementById(t.id);
     if (el) el.style.display = (i===0 ? 'block' : 'none');
   });
+
+  // ★ 初始：顯示基本資訊的說明表格
+  const guide = document.getElementById('tab-0-guide');
+  if (guide) guide.style.display = 'block';
+  
   renderAllForms();
   applyHash();
   window.addEventListener('hashchange', applyHash);
@@ -1124,19 +1136,15 @@ document.getElementById('clearIdentityBtn')?.addEventListener('click', clearIden
 
 // 讓「立即前往」按鈕能切換到對應分頁
 function bindGuideJumpers(){
-  document.querySelectorAll('[data-goto]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const targetId = btn.getAttribute('data-goto');
-      // 在 __TAB_SPECS 找對應 index（以 tab.id 比對）
-      const specs = window.__TAB_SPECS || [];
-      const idx = specs.findIndex(t => t.id === targetId);
-      if (idx >= 0) {
-        switchTab(idx);
-        // 捲動到頁面頂部，讓表單從題首開始
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    });
-  });
+  // 事件委派：不管按鈕何時被插入，都能生效
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-goto]');
+    if (!btn) return;
+    const targetId = btn.getAttribute('data-goto'); // 例如 'tab-3'
+    const specs = window.__TAB_SPECS || [];
+    const idx = specs.findIndex(t => t.id === targetId);
+    if (idx >= 0) switchTab(idx);
+  }, { passive:true });
 }
   
 document.addEventListener('DOMContentLoaded', async ()=>{
