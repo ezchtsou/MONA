@@ -393,28 +393,36 @@ function renderAllForms(){
         }).join('');
       }
     }
+
     let host = sec.querySelector('.form-host');
-    if(!host){ host = document.createElement('div'); host.className='form-host'; const btns=sec.querySelector('.btns'); sec.insertBefore(host, btns||null); }
+    if(!host){
+      host = document.createElement('div');
+      host.className='form-host';
+      const btns=sec.querySelector('.btns');
+      sec.insertBefore(host, btns||null);
+    }
     host.innerHTML = html;
 
+    // 綁定主要送出
     const btn = sec.querySelector('.btns .primary');
     if(btn){ btn.onclick = ()=> submitByKind(tab.kind); }
-  });
-// 在 renderAllForms() 末端「綁定送出按鈕」附近加入：
-if (tab.kind === 'grow360') {
-  const btns = sec.querySelector('.btns');
-  if (btns && !btns.querySelector('.continue')) {
-    const cont = document.createElement('button');
-    cont.type = 'button';
-    cont.className = 'continue';
-    cont.textContent = '送出並繼續';
-    cont.style.marginLeft = '8px';
-    cont.addEventListener('click', ()=> submitByKind('grow360', { continue: true }));
-    btns.appendChild(cont);
-  }
-}
-}
 
+    // 只有 grow360 加「送出並繼續」按鈕
+    if (tab.kind === 'grow360') {
+      const btns = sec.querySelector('.btns');
+      if (btns && !btns.querySelector('.continue')) {
+        const cont = document.createElement('button');
+        cont.type = 'button';
+        cont.className = 'continue';
+        cont.textContent = '送出並繼續';
+        cont.style.marginLeft = '8px';
+        cont.addEventListener('click', ()=> submitByKind('grow360', { continue: true }));
+        btns.appendChild(cont);
+      }
+    }
+  });
+}
+  
 /* ===== [07] 讀值/驗證/送出 ===== */
 function readLikert(prefix, count){
   const out = [];
@@ -985,7 +993,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   bindInstantResolve();           // 再綁自動查詢
   applyCourseFromQuery();
   loadCourseListForMakeup();
-  ensureGrow360RateePicker();   // ← 新增
+  await ensureGrow360RateePicker();   // ← 新增
 });
   
 </script>
