@@ -699,13 +699,25 @@ function clearIdentity(){
 }
 
 // === 讀名冊，回傳 [{employeeId, fullName, dept}, ...] ===
+// === 讀名冊，回傳 [{employeeId, fullName, dept}, ...] ===
 async function fetchRoster(){
   const url = `${getEndpoint()}?action=roster&t=${Date.now()}`;
-  const res = await fetch(url, { cache:'no-store', mode:'cors' });
-  const data = await res.json().catch(()=> ({}));
-  return (data && data.ok && Array.isArray(data.items)) ? data.items : [];
+  try {
+    const res  = await fetch(url, { cache:'no-store', mode:'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data?.ok || !Array.isArray(data.items)) throw new Error('invalid payload');
+    // 緩存一份，供其它地方備援
+    window.__ROSTER__ = data.items;
+    return data.items;
+  } catch (e) {
+    console.warn('fetchRoster() 失敗：', e);
+    toast('名冊讀取失敗，稍後再試');
+    return Array.isArray(window.__ROSTER__) ? window.__ROSTER__ : [];
+  }
 }
 
+// === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
 // === 在 grow360 表單頂端插入「評估對象」下拉 + 搜尋 ===
 async function ensureGrow360RateePicker(){
   const tab = FORM_CONFIG.tabs.find(t=> t.kind==='grow360');
@@ -736,28 +748,67 @@ async function ensureGrow360RateePicker(){
   `;
   host.prepend(box);
 
-  // 載名冊 + 綁定濾搜尋
+  // 載名冊
   let roster = await fetchRoster();
-  const sel  = box.querySelector('#g360RateeSelect');
-  const filter = box.querySelector('#g360RateeFilter');
-  const reload = box.querySelector('#g360ReloadRoster');
+
+  const sel     = box.querySelector('#g360RateeSelect');
+  const filter  = box.querySelector('#g360RateeFilter');
+  const reload  = box.querySelector('#g360ReloadRoster');
 
   function renderOptions(keyword=''){
     const kw = String(keyword||'').trim().toLowerCase();
+    const items = (roster||[]).filter(p =>
+      !kw ||
+      (p.employeeId||'').toLowerCase().includes(kw) ||
+      (p.fullName||'').toLowerCase().includes(kw)
+    );
     const opts = [`<option value="">請選擇要評估的對象</option>`]
-      .concat(roster
-        .filter(p => !kw || p.employeeId.toLowerCase().includes(kw) || p.fullName.toLowerCase().includes(kw))
-        .map(p => `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
+      .concat(items.map(p => `<option value="${p.employeeId}">${p.employeeId}｜${p.fullName}${p.dept?`（${p.dept}）`:''}</option>`));
     sel.innerHTML = opts.join('');
-  }
-  renderOptions();
 
+    // 若 keyword 為精準員編，直接選取
+    const exact = (roster||[]).find(p => (p.employeeId||'').toUpperCase() === keyword.toUpperCase());
+    if (exact) sel.value = exact.employeeId;
+  }
+
+  renderOptions('');
+
+  // 即時篩選；Enter 時若精準匹配就直接選取
   filter.addEventListener('input', ()=> renderOptions(filter.value));
+  filter.addEventListener('keyup', (e)=>{
+    if (e.key === 'Enter') renderOptions(filter.value);
+  });
+
+  // 重新載入名冊（有反應＆提示筆數）
   reload.addEventListener('click', async ()=>{
+    reload.disabled = true;
+    reload.textContent = '載入中…';
+    const before = Array.isArray(roster) ? roster.length : 0;
     roster = await fetchRoster();
     renderOptions(filter.value);
-    toast('名冊已更新');
+    const after = Array.isArray(roster) ? roster.length : 0;
+    toast(`名冊已更新（${before} → ${after}）`);
+    reload.textContent = '重新載入名冊';
+    reload.disabled = false;
   });
+
+  // 角色切換：自評→停用下拉；主管/同事→啟用下拉
+  const roleSel = document.getElementById(`${tab.id}-extra-role`);
+  function applyRoleLock(){
+    const role = roleSel?.value || 'self';
+    const disabled = (role === 'self');
+    sel.disabled = disabled;
+    filter.disabled = disabled;
+  }
+  if (roleSel){
+    roleSel.addEventListener('change', applyRoleLock);
+    applyRoleLock();
+  }
+
+  // 若使用者在「基本資訊」已輸入員編，且非 self，幫忙快速定位（僅預選，不強制）
+  if (profile?.employeeId){
+    renderOptions(profile.employeeId);
+  }
 }
   
 /* ===== [09] 匿名圖表 ===== */
